@@ -16,10 +16,8 @@ services:
         generateValue: true
 
   # AgriScan Frontend Static Site
-  - type: web
+  - type: static
     name: agriscan-frontend
-    runtime: static
-    plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
