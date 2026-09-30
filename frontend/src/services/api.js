@@ -1,6 +1,23 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const getApiBaseUrl = () => {
+  let envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    if (!envUrl.startsWith('http://') && !envUrl.startsWith('https://')) {
+      envUrl = `https://${envUrl}`;
+    }
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/+$/, '')}/api`;
+  }
+
+  // If in browser and not localhost, fallback to deployed backend
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://agriscan-backend-3veo.onrender.com/api';
+  }
+
+  return 'http://localhost:5001/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
