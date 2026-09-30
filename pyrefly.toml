@@ -1,0 +1,20 @@
+project-includes = ["ml/**/*.py"]
+
+project-excludes = [
+    "**/.venv/**",
+    "**/__pycache__/**",
+    "**/node_modules/**"
+]
+
+search-path = [
+    ".",
+    "ml"
+]
+
+site-package-path = [
+    "ml/.venv/lib/python3.11/site-packages"
+]
+
+python-platform = "darwin"
+python-version = "3.11"
+python-interpreter-path = "ml/.venv/bin/python"

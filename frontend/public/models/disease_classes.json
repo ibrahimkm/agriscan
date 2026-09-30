@@ -1,0 +1,694 @@
+{
+  "modelName": "MobileNetV3-Small-LeafDisease",
+  "inputShape": [
+    1,
+    3,
+    224,
+    224
+  ],
+  "normalization": {
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "classes": [
+    {
+      "index": 0,
+      "rawClass": "Apple___Apple_scab",
+      "crop": "Apple",
+      "disease": "Apple scab",
+      "scientificName": "Apple Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Apple scab is a condition affecting Apple leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Apple scab",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 1,
+      "rawClass": "Apple___Black_rot",
+      "crop": "Apple",
+      "disease": "Black rot",
+      "scientificName": "Apple Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Black rot is a condition affecting Apple leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Black rot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 2,
+      "rawClass": "Apple___Cedar_apple_rust",
+      "crop": "Apple",
+      "disease": "Cedar apple rust",
+      "scientificName": "Apple Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Cedar apple rust is a condition affecting Apple leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Cedar apple rust",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 3,
+      "rawClass": "Apple___healthy",
+      "crop": "Apple",
+      "disease": "healthy",
+      "scientificName": "Apple Pathogen",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "healthy is a condition affecting Apple leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of healthy",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 4,
+      "rawClass": "Corn___Cercospora_leaf_spot",
+      "crop": "Corn",
+      "disease": "Cercospora leaf spot",
+      "scientificName": "Corn Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Cercospora leaf spot is a condition affecting Corn leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Cercospora leaf spot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 5,
+      "rawClass": "Corn___Common_rust",
+      "crop": "Corn",
+      "disease": "Common rust",
+      "scientificName": "Corn Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Common rust is a condition affecting Corn leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Common rust",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 6,
+      "rawClass": "Corn___Northern_Leaf_Blight",
+      "crop": "Corn",
+      "disease": "Northern Leaf Blight",
+      "scientificName": "Corn Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Northern Leaf Blight is a condition affecting Corn leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Northern Leaf Blight",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 7,
+      "rawClass": "Corn___healthy",
+      "crop": "Corn",
+      "disease": "healthy",
+      "scientificName": "Corn Pathogen",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "healthy is a condition affecting Corn leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of healthy",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 8,
+      "rawClass": "Grape___Black_rot",
+      "crop": "Grape",
+      "disease": "Black rot",
+      "scientificName": "Grape Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Black rot is a condition affecting Grape leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Black rot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 9,
+      "rawClass": "Grape___Esca_(Black_Measles)",
+      "crop": "Grape",
+      "disease": "Esca (Black Measles)",
+      "scientificName": "Grape Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Esca (Black Measles) is a condition affecting Grape leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Esca (Black Measles)",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 10,
+      "rawClass": "Grape___Leaf_blight",
+      "crop": "Grape",
+      "disease": "Leaf blight",
+      "scientificName": "Grape Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Leaf blight is a condition affecting Grape leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Leaf blight",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 11,
+      "rawClass": "Grape___healthy",
+      "crop": "Grape",
+      "disease": "healthy",
+      "scientificName": "Grape Pathogen",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "healthy is a condition affecting Grape leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of healthy",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 12,
+      "rawClass": "Pepper_bell___Bacterial_spot",
+      "crop": "Pepper bell",
+      "disease": "Bacterial spot",
+      "scientificName": "Pepper bell Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Bacterial spot is a condition affecting Pepper bell leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Bacterial spot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 13,
+      "rawClass": "Pepper_bell___healthy",
+      "crop": "Pepper bell",
+      "disease": "healthy",
+      "scientificName": "Pepper bell Pathogen",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "healthy is a condition affecting Pepper bell leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of healthy",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 14,
+      "rawClass": "Potato___Early_blight",
+      "crop": "Potato",
+      "disease": "Early Blight",
+      "scientificName": "Alternaria solani",
+      "severity": "moderate",
+      "affectedPercentage": 28,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Potato early blight produces target-like circular dark brown lesions on foliage, impairing tuber sizing.",
+          "symptoms": [
+            "Concentric dark brown rings",
+            "Yellow halos on foliage",
+            "Premature defoliation"
+          ],
+          "recommendedAction": "Apply protectant fungicides (Chlorothalonil, Mancozeb) every 7-10 days under warm humid conditions.",
+          "immediateActionTitle": "Prevent Spore Spread",
+          "immediateActionDesc": "Spray protectant fungicide and avoid excessive nitrogen stress."
+        }
+      }
+    },
+    {
+      "index": 15,
+      "rawClass": "Potato___Late_blight",
+      "crop": "Potato",
+      "disease": "Late Blight",
+      "scientificName": "Phytophthora infestans",
+      "severity": "severe",
+      "affectedPercentage": 52,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Late blight can completely defoliate potato canopies in days and infect tubers with dry rot.",
+          "symptoms": [
+            "Water-soaked dark lesions",
+            "White sporulation on leaf underside",
+            "Foul odor and vine collapse"
+          ],
+          "recommendedAction": "Immediately spray Cymoxanil + Mancozeb or Dimethomorph formulations.",
+          "immediateActionTitle": "Critical Chemical Intervention",
+          "immediateActionDesc": "Halt overhead irrigation and apply systemic curative fungicide immediately."
+        }
+      }
+    },
+    {
+      "index": 16,
+      "rawClass": "Potato___healthy",
+      "crop": "Potato",
+      "disease": "Healthy Potato Leaf",
+      "scientificName": "Solanum tuberosum",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "The potato foliage is vigorous and free from pathological distress.",
+          "symptoms": [
+            "Healthy chlorophyll distribution",
+            "No leaf blights or curling"
+          ],
+          "recommendedAction": "Ensure regular hilling and balanced potassium application.",
+          "immediateActionTitle": "Preventive Care",
+          "immediateActionDesc": "Keep canopy aerated and scout fields weekly."
+        }
+      }
+    },
+    {
+      "index": 17,
+      "rawClass": "Rice___Brown_Spot",
+      "crop": "Rice",
+      "disease": "Rice Brown Spot",
+      "scientificName": "Bipolaris oryzae",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Brown spot causes oval to circular dark brown spots across rice leaf blades and panicles, often linked to nutrient-deficient soil.",
+          "symptoms": [
+            "Small cylindrical to oval brown spots",
+            "Yellowish halo surrounding dark core",
+            "Reduced grain filling"
+          ],
+          "recommendedAction": "Apply balanced potassium and spray Propiconazole or Hexaconazole.",
+          "immediateActionTitle": "Soil Nutrition & Spray",
+          "immediateActionDesc": "Correct soil potash deficiency and apply foliar fungicide."
+        }
+      }
+    },
+    {
+      "index": 18,
+      "rawClass": "Rice___Leaf_Blast",
+      "crop": "Rice",
+      "disease": "Rice Leaf Blast",
+      "scientificName": "Magnaporthe oryzae",
+      "severity": "severe",
+      "affectedPercentage": 42,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Rice blast is a destructive fungal disease causing diamond or spindle-shaped lesions with gray centers and brown margins.",
+          "symptoms": [
+            "Spindle/diamond-shaped lesions",
+            "Gray or whitish center with reddish-brown border",
+            "Severe lodging under heavy attack"
+          ],
+          "recommendedAction": "Apply Tricyclazole 75 WP (0.6g/L) or Isoprothiolane at the onset of lesions.",
+          "immediateActionTitle": "Apply Tricyclazole",
+          "immediateActionDesc": "Spray blast-specific fungicide and avoid excessive nitrogen application."
+        }
+      }
+    },
+    {
+      "index": 19,
+      "rawClass": "Rice___healthy",
+      "crop": "Rice",
+      "disease": "Healthy Rice Leaf",
+      "scientificName": "Oryza sativa",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Rice leaf shows clean erect blades with strong tillering and no fungal spots.",
+          "symptoms": [
+            "Bright green foliage",
+            "Smooth leaf surface without lesions"
+          ],
+          "recommendedAction": "Maintain optimal standing water depth (2-5cm) during active tillering.",
+          "immediateActionTitle": "Water Management",
+          "immediateActionDesc": "Maintain recommended water levels and split nitrogen doses."
+        }
+      }
+    },
+    {
+      "index": 20,
+      "rawClass": "Tomato___Bacterial_spot",
+      "crop": "Tomato",
+      "disease": "Bacterial spot",
+      "scientificName": "Tomato Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Bacterial spot is a condition affecting Tomato leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Bacterial spot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 21,
+      "rawClass": "Tomato___Early_blight",
+      "crop": "Tomato",
+      "disease": "Early Blight",
+      "scientificName": "Alternaria solani",
+      "severity": "moderate",
+      "affectedPercentage": 32,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Early blight is a fungal disease caused by Alternaria solani affecting tomato and potato foliage. It manifests as dark concentric rings surrounded by yellow halos.",
+          "symptoms": [
+            "Dark brown spots with concentric target-rings",
+            "Chlorotic yellowing around leaf lesions",
+            "Starts on lower, mature leaves"
+          ],
+          "recommendedAction": "Apply a copper-based fungicide (Copper Hydroxide) or Chlorothalonil early morning and ensure proper spacing for airflow.",
+          "immediateActionTitle": "Isolate & Prune Foliage",
+          "immediateActionDesc": "Prune infected bottom leaves and safely destroy them to halt fungal spore progression."
+        },
+        "hi": {
+          "whatIsIt": "अगेती झुलसा (Early Blight) एक फफूंद जनित रोग है जो पत्तियों पर काले छल्लेदार धब्बे और पीलापन पैदा करता है।",
+          "symptoms": [
+            "पत्तियों पर गहरे भूरे रंग के संकेंद्रित छल्ले",
+            "धब्बों के चारों ओर पीलापन",
+            "निचली पत्तियों से शुरू होता है"
+          ],
+          "recommendedAction": "तुरंत कॉपर युक्त कवकनाशी का छिड़काव करें और पौधों के बीच हवा का प्रवाह सुनिश्चित करें।",
+          "immediateActionTitle": "प्रभावित पत्तियां हटाएं",
+          "immediateActionDesc": "रोगग्रस्त निचली पत्तियों को तुरंत काटकर नष्ट कर दें ताकि फफूंद न फैले।"
+        },
+        "te": {
+          "whatIsIt": "ముందస్తు మచ్చ తెగులు ఆకులపై గోధుమ రంగు వలయాలు మరియు పసుపు రంగు మచ్చలను కలిగిస్తుంది.",
+          "symptoms": [
+            "ఆకులపై వలయాకారపు గోధుమ రంగు మచ్చలు",
+            "మచ్చల చుట్టూ పసుపు రంగు అంచులు",
+            "దిగువ పాత ఆకుల నుండి మొదలవుతుంది"
+          ],
+          "recommendedAction": "వెంటనే రాగి ఆధారిత శిలీంధ్ర సంహారిణి (కాపర్ హైడ్రాక్సైడ్) పిచికారీ చేయండి.",
+          "immediateActionTitle": "ఆకులను తొలగించండి",
+          "immediateActionDesc": "తెగులు సోకిన దిగువ ఆకులను కత్తిరించి నాశనం చేయండి."
+        },
+        "ta": {
+          "whatIsIt": "ஆரம்பகால கருகல் நோய் இலைகளில் அடர் பழுப்பு நிற வளையங்களையும் மஞ்சள் புள்ளிகளையும் உருவாக்குகிறது.",
+          "symptoms": [
+            "இலைகளில் அடர் பழுப்பு நிற வட்ட வடிவ புள்ளிகள்",
+            "புள்ளிகளை சுற்றி மஞ்சள் வளையம்",
+            "கீழ் இலைகளில் தொடங்கி பரவுகிறது"
+          ],
+          "recommendedAction": "உடனடியாக காப்பர் சார்ந்த பூஞ்சைக்கொல்லி தெளிக்கவும்.",
+          "immediateActionTitle": "பாதிக்கப்பட்ட இலைகளை அகற்றவும்",
+          "immediateActionDesc": "நோய் பரவாமல் தடுக்க பாதிக்கப்பட்ட கீழ் இலைகளை வெட்டி அழிக்கவும்."
+        }
+      }
+    },
+    {
+      "index": 22,
+      "rawClass": "Tomato___Late_blight",
+      "crop": "Tomato",
+      "disease": "Late Blight",
+      "scientificName": "Phytophthora infestans",
+      "severity": "severe",
+      "affectedPercentage": 45,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Late blight is a destructive water-mold pathogen causing large, irregular water-soaked lesions that turn dark brown and rot rapidly.",
+          "symptoms": [
+            "Large irregular water-soaked spots",
+            "White fuzzy mold on underside of leaves in wet weather",
+            "Rapid wilting and leaf collapse"
+          ],
+          "recommendedAction": "Apply systemic fungicides like Metalaxyl or Mancozeb immediately. Avoid sprinkler irrigation.",
+          "immediateActionTitle": "Emergency Protective Spray",
+          "immediateActionDesc": "Apply systemic fungicide within 12 hours and remove collapsing vines."
+        },
+        "hi": {
+          "whatIsIt": "पछेती झुलसा (Late Blight) बहुत तेजी से फैलने वाला रोग है जिससे पत्तियां सड़ने और सूखने लगती हैं।",
+          "symptoms": [
+            "पत्तियों पर बड़े अनियमित काले धब्बे",
+            "पत्ती के नीचे सफेद फफूंद",
+            "पौधे का तेजी से मुरझाना"
+          ],
+          "recommendedAction": "तुरंत मैंकोजेब या मेटालेक्सिल कवकनाशी का छिड़काव करें।",
+          "immediateActionTitle": "आपातकालीन कवकनाशी स्प्रे",
+          "immediateActionDesc": "12 घंटे के भीतर दवा का छिड़काव करें और खराब शाखाओं को हटाएं।"
+        }
+      }
+    },
+    {
+      "index": 23,
+      "rawClass": "Tomato___Leaf_Mold",
+      "crop": "Tomato",
+      "disease": "Leaf Mold",
+      "scientificName": "Tomato Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Leaf Mold is a condition affecting Tomato leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Leaf Mold",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 24,
+      "rawClass": "Tomato___Septoria_leaf_spot",
+      "crop": "Tomato",
+      "disease": "Septoria leaf spot",
+      "scientificName": "Tomato Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Septoria leaf spot is a condition affecting Tomato leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Septoria leaf spot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 25,
+      "rawClass": "Tomato___Spider_mites",
+      "crop": "Tomato",
+      "disease": "Spider mites",
+      "scientificName": "Tomato Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Spider mites is a condition affecting Tomato leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Spider mites",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 26,
+      "rawClass": "Tomato___Target_Spot",
+      "crop": "Tomato",
+      "disease": "Target Spot",
+      "scientificName": "Tomato Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Target Spot is a condition affecting Tomato leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Target Spot",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 27,
+      "rawClass": "Tomato___Yellow_Leaf_Curl_Virus",
+      "crop": "Tomato",
+      "disease": "Yellow Leaf Curl Virus",
+      "scientificName": "Tomato Pathogen",
+      "severity": "moderate",
+      "affectedPercentage": 30,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Yellow Leaf Curl Virus is a condition affecting Tomato leaves.",
+          "symptoms": [
+            "Visual lesions characteristic of Yellow Leaf Curl Virus",
+            "Altered leaf pigmentation"
+          ],
+          "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
+          "immediateActionTitle": "Isolate & Monitor",
+          "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        }
+      }
+    },
+    {
+      "index": 28,
+      "rawClass": "Tomato___healthy",
+      "crop": "Tomato",
+      "disease": "Healthy Leaf",
+      "scientificName": "Solanum lycopersicum",
+      "severity": "none",
+      "affectedPercentage": 0,
+      "descriptions": {
+        "en": {
+          "whatIsIt": "Leaf tissue is vibrant, robust, and shows no symptoms of fungal, bacterial, or viral disease.",
+          "symptoms": [
+            "Uniform green pigmentation",
+            "Intact leaf margins",
+            "No necrotic spots or yellowing"
+          ],
+          "recommendedAction": "Maintain balanced N-P-K fertilization and consistent soil moisture.",
+          "immediateActionTitle": "Routine Maintenance",
+          "immediateActionDesc": "Continue regular monitoring and optimal drip irrigation."
+        },
+        "hi": {
+          "whatIsIt": "पत्ती पूरी तरह स्वस्थ है और इसमें किसी भी बीमारी के लक्षण नहीं हैं।",
+          "symptoms": [
+            "एकसमान हरा रंग",
+            "मजबूत पत्ती संरचना",
+            "कोई धब्बा या पीलापन नहीं"
+          ],
+          "recommendedAction": "नियमित रूप से संतुलित खाद और पानी देते रहें।",
+          "immediateActionTitle": "नियमित देखभाल",
+          "immediateActionDesc": "फसल की सामान्य निगरानी जारी रखें।"
+        }
+      }
+    }
+  ]
+}
