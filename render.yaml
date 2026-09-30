@@ -15,9 +15,10 @@ services:
       - key: JWT_SECRET
         generateValue: true
 
-  # AgriScan Frontend Static Site
-  - type: static
+  # AgriScan Frontend Static Site (type: web with runtime: static, no plan field)
+  - type: web
     name: agriscan-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
