@@ -16,26 +16,29 @@ try:
     from ml.dataset import (
         PlantLeafDataset,
         get_data_transforms,
-        create_synthetic_leaf_dataset,
-        LEAF_DISEASE_CLASSES,
+        create_stratified_splits,
+        PLANTVILLAGE_CLASSES,
         NORMALIZE_MEAN,
         NORMALIZE_STD,
+        DEFAULT_DATA_DIR,
     )
 except ImportError:
     from dataset import (
         PlantLeafDataset,
         get_data_transforms,
-        create_synthetic_leaf_dataset,
-        LEAF_DISEASE_CLASSES,
+        create_stratified_splits,
+        PLANTVILLAGE_CLASSES,
         NORMALIZE_MEAN,
         NORMALIZE_STD,
+        DEFAULT_DATA_DIR,
     )
 
 __all__ = [
     "PlantLeafDataset",
     "get_data_transforms",
-    "create_synthetic_leaf_dataset",
-    "LEAF_DISEASE_CLASSES",
+    "create_stratified_splits",
+    "PLANTVILLAGE_CLASSES",
     "NORMALIZE_MEAN",
     "NORMALIZE_STD",
+    "DEFAULT_DATA_DIR",
 ]
