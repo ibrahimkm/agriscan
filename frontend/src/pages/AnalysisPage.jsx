@@ -14,38 +14,81 @@ export const AnalysisPage = () => {
   const { isOnline } = useConnectivity();
   const { language, t } = useLanguage();
 
-  const capturedImage = location.state?.capturedImage || 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80';
-  const cropName = location.state?.cropName || 'Tomato';
+  const capturedImage = location.state?.capturedImage;
+  const cropName = location.state?.cropName;
+  const [errorMsg, setErrorMsg] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!capturedImage) {
+      navigate('/diagnose', { replace: true });
+    }
+  }, [capturedImage, navigate]);
 
   const handleAnalysisComplete = async () => {
     try {
-      // Run on-device local offline neural network diagnosis engine (ONNX WASM)
-      const localResult = await runLocalDiagnosis({ cropName, language, image: capturedImage });
-      localResult.imageUrl = capturedImage;
+      let diagnosisResult = null;
 
-      // Save locally to IndexedDB immediately (100% offline reliability)
-      const savedOffline = await saveOfflineDiagnosis(localResult);
-
-      // If online, optionally sync to backend
+      // 1. Primary path: if online, run inference on backend with real EfficientNet ONNX model
       if (isOnline) {
-        api.post('/diagnoses', {
-          cropName,
-          base64Image: capturedImage.startsWith('data:') ? capturedImage : null,
-          imageUrl: !capturedImage.startsWith('data:') ? capturedImage : null,
-          clientOfflineId: savedOffline.id,
-        }).then((res) => {
-          if (res.data?.success) {
-            savedOffline._id = res.data.data._id;
+        try {
+          const payload = {
+            base64Image: capturedImage?.startsWith('data:') ? capturedImage : null,
+            imageUrl: !capturedImage?.startsWith('data:') ? capturedImage : null,
+            cropName: cropName || undefined,
+          };
+          const res = await api.post('/diagnoses', payload);
+          if (res.data?.success && res.data?.data) {
+            diagnosisResult = res.data.data;
           }
-        }).catch(() => {});
+        } catch (backendErr) {
+          console.warn('[Analysis] Backend diagnosis failed, checking local offline fallback:', backendErr);
+        }
       }
 
-      navigate(`/diagnosis/${savedOffline.id}`, { state: { diagnosis: savedOffline } });
+      // 2. Fallback path: if backend unavailable or offline, try local on-device inference
+      if (!diagnosisResult) {
+        try {
+          const localResult = await runLocalDiagnosis({ cropName, language, image: capturedImage });
+          localResult.imageUrl = capturedImage;
+          diagnosisResult = localResult;
+        } catch (localErr) {
+          console.warn('[Analysis] Local inference also unavailable:', localErr);
+        }
+      }
+
+      // 3. If both failed, do NOT substitute fake data; show user error
+      if (!diagnosisResult) {
+        throw new Error('Inference failed: Unable to classify image with the ML model. Please check connectivity and image quality.');
+      }
+
+      // 4. Save to IndexedDB for offline history
+      const savedOffline = await saveOfflineDiagnosis(diagnosisResult);
+      const diagnosisId = diagnosisResult._id || savedOffline.id;
+
+      navigate(`/diagnosis/${diagnosisId}`, { state: { diagnosis: diagnosisResult } });
     } catch (err) {
       console.error('[Analysis Error]', err);
-      navigate('/home');
+      setErrorMsg(err.message || 'Diagnosis failed. Please retake the leaf image.');
     }
   };
+
+  if (errorMsg) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] select-none flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+          <span className="text-2xl font-bold">!</span>
+        </div>
+        <h2 className="text-lg font-bold text-[#14382B]">Diagnosis Failed</h2>
+        <p className="text-sm text-zinc-600 max-w-xs">{errorMsg}</p>
+        <button
+          onClick={() => navigate('/diagnose')}
+          className="px-6 py-2.5 rounded-full bg-[#14382B] text-white font-semibold text-sm hover:bg-[#1B4332] transition-colors"
+        >
+          {t('retake') || 'Retake Image'}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] select-none">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, Loader2, RotateCw } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-export const ScanAnimation = ({ imageUrl, cropName = 'Tomato', onComplete, onCancel }) => {
+export const ScanAnimation = ({ imageUrl, cropName, onComplete, onCancel }) => {
   const { t, translateCrop } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -53,11 +53,17 @@ export const ScanAnimation = ({ imageUrl, cropName = 'Tomato', onComplete, onCan
     <div className="max-w-md mx-auto p-4 space-y-6 select-none">
       {/* Top Image Preview with Pulse Overlay */}
       <div className="relative w-full h-56 rounded-3xl overflow-hidden shadow-md border border-[#EAE5DE] bg-zinc-900">
-        <img
-          src={imageUrl || 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80'}
-          alt="Scanning leaf"
-          className="w-full h-full object-cover"
-        />
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="Scanning leaf"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-zinc-400">
+            <span className="text-xs">Analyzing leaf image...</span>
+          </div>
+        )}
 
         {/* Scan line laser animation */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#22C55E]/20 to-transparent animate-pulse" />

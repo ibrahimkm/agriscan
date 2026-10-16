@@ -25,34 +25,21 @@ export const DiagnosisResultPage = () => {
 
   const [diagnosis, setDiagnosis] = useState(location.state?.diagnosis || null);
   const [loading, setLoading] = useState(!location.state?.diagnosis);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!diagnosis) {
       const fetchDiagnosis = async () => {
         try {
           const res = await api.get(`/diagnoses/${id}`);
-          if (res.data.success) {
+          if (res.data?.success && res.data?.data) {
             setDiagnosis(res.data.data);
+          } else {
+            setError('Diagnosis record not found.');
           }
-        } catch {
-          // Default fallback matching Stitch Screen 6
-          setDiagnosis({
-            _id: id,
-            cropName: 'Tomato',
-            predictedDisease: 'Early Blight',
-            scientificName: 'Alternaria solani',
-            confidence: 94,
-            severity: 'moderate',
-            affectedPercentage: 32,
-            imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
-            whatIsIt: 'Early blight is a fungal disease caused by Alternaria solani that primarily affects tomato and potato plants. It manifests as concentric rings with yellowing halos.',
-            symptoms: [
-              'Dark brown spots with concentric rings',
-              'Yellowing around lesions (chlorosis)',
-              'Starts on lower, older leaves',
-            ],
-            recommendedAction: 'Apply a copper-based fungicide and ensure proper spacing for air circulation. Remove heavily infected lower leaves immediately to slow the spread.',
-          });
+        } catch (err) {
+          console.error('[Diagnosis Result Error]', err);
+          setError(err.response?.data?.message || 'Unable to load diagnosis record. Please try again.');
         } finally {
           setLoading(false);
         }
@@ -62,10 +49,29 @@ export const DiagnosisResultPage = () => {
     }
   }, [id, diagnosis]);
 
-  if (!diagnosis) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center">
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center space-y-3">
+        <div className="w-8 h-8 border-3 border-[#2D6A4F] border-t-transparent rounded-full animate-spin" />
         <p className="text-sm font-semibold text-[#6B7280]">Loading diagnosis result...</p>
+      </div>
+    );
+  }
+
+  if (error || !diagnosis) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div className="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <h2 className="text-lg font-bold text-[#14382B]">Diagnosis Not Available</h2>
+        <p className="text-sm text-zinc-600 max-w-xs">{error || 'Could not load diagnosis report.'}</p>
+        <button
+          onClick={() => navigate('/diagnose')}
+          className="px-6 py-2.5 rounded-full bg-[#14382B] text-white font-semibold text-sm hover:bg-[#1B4332] transition-colors"
+        >
+          {t('backToScan') || 'Back to Scan'}
+        </button>
       </div>
     );
   }

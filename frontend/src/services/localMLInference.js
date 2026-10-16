@@ -137,7 +137,7 @@ export const runLocalDiagnosis = async ({ cropName = 'Tomato', language = 'en', 
 
       maxIdx = classScores[0].idx;
       maxProb = classScores[0].prob;
-      confidence = Math.min(99, Math.max(78, Math.round(maxProb * 100)));
+      confidence = Math.min(99, Math.max(1, Math.round(maxProb * 100)));
 
       if (initialized.metadata && initialized.metadata.classes) {
         predictedClassMeta = initialized.metadata.classes[maxIdx];
@@ -152,38 +152,19 @@ export const runLocalDiagnosis = async ({ cropName = 'Tomato', language = 'en', 
       }
     }
   } catch (err) {
-    console.warn('[Local ML] Running fallback local diagnostic heuristics:', err);
+    console.error('[Local ML] Inference failed:', err);
+    throw err;
   }
-
-  // Fallback / default rule resolution if image wasn't provided or ONNX was skipped
-  const isTomato = cropName.toLowerCase().includes('tomato');
-  const isRice = cropName.toLowerCase().includes('rice');
-  const isPotato = cropName.toLowerCase().includes('potato');
-  const isSoybean = cropName.toLowerCase().includes('soy');
-
-  let diseaseKey = predictedClassMeta?.disease || 'Early Blight';
-  let scientificName = predictedClassMeta?.scientificName || 'Alternaria solani';
-  let severity = predictedClassMeta?.severity || 'moderate';
-  let affectedPercentage = predictedClassMeta?.affectedPercentage || 32;
 
   if (!predictedClassMeta) {
-    if (isRice) {
-      diseaseKey = 'Rice Leaf Blast';
-      scientificName = 'Magnaporthe oryzae';
-      severity = 'severe';
-      affectedPercentage = 42;
-    } else if (isPotato) {
-      diseaseKey = 'Late Blight';
-      scientificName = 'Phytophthora infestans';
-      severity = 'severe';
-      affectedPercentage = 45;
-    } else if (isSoybean) {
-      diseaseKey = 'Septoria Brown Spot';
-      scientificName = 'Septoria glycines';
-      severity = 'moderate';
-      affectedPercentage = 24;
-    }
+    throw new Error('On-device neural network diagnosis failed: no valid class was predicted.');
   }
+
+  const diseaseKey = predictedClassMeta.disease;
+  const scientificName = predictedClassMeta.scientificName;
+  const severity = predictedClassMeta.severity || 'moderate';
+  const affectedPercentage = predictedClassMeta.affectedPercentage || 25;
+  const detectedCrop = predictedClassMeta.crop || cropName;
 
   // Multilingual descriptions
   const descriptions = {
@@ -276,7 +257,7 @@ export const runLocalDiagnosis = async ({ cropName = 'Tomato', language = 'en', 
   const localized = descriptions[language] || descriptions.en;
 
   return {
-    cropName,
+    cropName: detectedCrop,
     predictedDisease: diseaseKey,
     scientificName,
     confidence,
