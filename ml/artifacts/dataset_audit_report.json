@@ -1,0 +1,283 @@
+{
+  "dataset_path": "/Users/ibrahim.k.m/MLOPS_final_project/plantvillage dataset/color",
+  "total_classes": 38,
+  "total_images": 54305,
+  "format_counts": {
+    ".jpg": 54303,
+    ".png": 1,
+    ".jpeg": 1
+  },
+  "corrupted_files": [],
+  "empty_classes": [],
+  "classes": {
+    "Apple___Apple_scab": {
+      "total_images": 630,
+      "valid_images": 630,
+      "formats": {
+        ".jpg": 630
+      }
+    },
+    "Apple___Black_rot": {
+      "total_images": 621,
+      "valid_images": 621,
+      "formats": {
+        ".jpg": 621
+      }
+    },
+    "Apple___Cedar_apple_rust": {
+      "total_images": 275,
+      "valid_images": 275,
+      "formats": {
+        ".jpg": 275
+      }
+    },
+    "Apple___healthy": {
+      "total_images": 1645,
+      "valid_images": 1645,
+      "formats": {
+        ".jpg": 1645
+      }
+    },
+    "Blueberry___healthy": {
+      "total_images": 1502,
+      "valid_images": 1502,
+      "formats": {
+        ".jpg": 1502
+      }
+    },
+    "Cherry_(including_sour)___Powdery_mildew": {
+      "total_images": 1052,
+      "valid_images": 1052,
+      "formats": {
+        ".jpg": 1052
+      }
+    },
+    "Cherry_(including_sour)___healthy": {
+      "total_images": 854,
+      "valid_images": 854,
+      "formats": {
+        ".jpg": 854
+      }
+    },
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+      "total_images": 513,
+      "valid_images": 513,
+      "formats": {
+        ".jpg": 513
+      }
+    },
+    "Corn_(maize)___Common_rust_": {
+      "total_images": 1192,
+      "valid_images": 1192,
+      "formats": {
+        ".jpg": 1192
+      }
+    },
+    "Corn_(maize)___Northern_Leaf_Blight": {
+      "total_images": 985,
+      "valid_images": 985,
+      "formats": {
+        ".jpg": 985
+      }
+    },
+    "Corn_(maize)___healthy": {
+      "total_images": 1162,
+      "valid_images": 1162,
+      "formats": {
+        ".jpg": 1162
+      }
+    },
+    "Grape___Black_rot": {
+      "total_images": 1180,
+      "valid_images": 1180,
+      "formats": {
+        ".jpg": 1180
+      }
+    },
+    "Grape___Esca_(Black_Measles)": {
+      "total_images": 1383,
+      "valid_images": 1383,
+      "formats": {
+        ".jpg": 1383
+      }
+    },
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": {
+      "total_images": 1076,
+      "valid_images": 1076,
+      "formats": {
+        ".jpg": 1076
+      }
+    },
+    "Grape___healthy": {
+      "total_images": 423,
+      "valid_images": 423,
+      "formats": {
+        ".jpg": 423
+      }
+    },
+    "Orange___Haunglongbing_(Citrus_greening)": {
+      "total_images": 5507,
+      "valid_images": 5507,
+      "formats": {
+        ".jpg": 5507
+      }
+    },
+    "Peach___Bacterial_spot": {
+      "total_images": 2297,
+      "valid_images": 2297,
+      "formats": {
+        ".jpg": 2297
+      }
+    },
+    "Peach___healthy": {
+      "total_images": 360,
+      "valid_images": 360,
+      "formats": {
+        ".jpg": 360
+      }
+    },
+    "Pepper,_bell___Bacterial_spot": {
+      "total_images": 997,
+      "valid_images": 997,
+      "formats": {
+        ".jpg": 997
+      }
+    },
+    "Pepper,_bell___healthy": {
+      "total_images": 1478,
+      "valid_images": 1478,
+      "formats": {
+        ".jpg": 1477,
+        ".png": 1
+      }
+    },
+    "Potato___Early_blight": {
+      "total_images": 1000,
+      "valid_images": 1000,
+      "formats": {
+        ".jpg": 1000
+      }
+    },
+    "Potato___Late_blight": {
+      "total_images": 1000,
+      "valid_images": 1000,
+      "formats": {
+        ".jpg": 1000
+      }
+    },
+    "Potato___healthy": {
+      "total_images": 152,
+      "valid_images": 152,
+      "formats": {
+        ".jpg": 152
+      }
+    },
+    "Raspberry___healthy": {
+      "total_images": 371,
+      "valid_images": 371,
+      "formats": {
+        ".jpg": 371
+      }
+    },
+    "Soybean___healthy": {
+      "total_images": 5090,
+      "valid_images": 5090,
+      "formats": {
+        ".jpg": 5090
+      }
+    },
+    "Squash___Powdery_mildew": {
+      "total_images": 1835,
+      "valid_images": 1835,
+      "formats": {
+        ".jpg": 1835
+      }
+    },
+    "Strawberry___Leaf_scorch": {
+      "total_images": 1109,
+      "valid_images": 1109,
+      "formats": {
+        ".jpg": 1109
+      }
+    },
+    "Strawberry___healthy": {
+      "total_images": 456,
+      "valid_images": 456,
+      "formats": {
+        ".jpg": 456
+      }
+    },
+    "Tomato___Bacterial_spot": {
+      "total_images": 2127,
+      "valid_images": 2127,
+      "formats": {
+        ".jpg": 2127
+      }
+    },
+    "Tomato___Early_blight": {
+      "total_images": 1000,
+      "valid_images": 1000,
+      "formats": {
+        ".jpg": 1000
+      }
+    },
+    "Tomato___Late_blight": {
+      "total_images": 1909,
+      "valid_images": 1909,
+      "formats": {
+        ".jpg": 1908,
+        ".jpeg": 1
+      }
+    },
+    "Tomato___Leaf_Mold": {
+      "total_images": 952,
+      "valid_images": 952,
+      "formats": {
+        ".jpg": 952
+      }
+    },
+    "Tomato___Septoria_leaf_spot": {
+      "total_images": 1771,
+      "valid_images": 1771,
+      "formats": {
+        ".jpg": 1771
+      }
+    },
+    "Tomato___Spider_mites Two-spotted_spider_mite": {
+      "total_images": 1676,
+      "valid_images": 1676,
+      "formats": {
+        ".jpg": 1676
+      }
+    },
+    "Tomato___Target_Spot": {
+      "total_images": 1404,
+      "valid_images": 1404,
+      "formats": {
+        ".jpg": 1404
+      }
+    },
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+      "total_images": 5357,
+      "valid_images": 5357,
+      "formats": {
+        ".jpg": 5357
+      }
+    },
+    "Tomato___Tomato_mosaic_virus": {
+      "total_images": 373,
+      "valid_images": 373,
+      "formats": {
+        ".jpg": 373
+      }
+    },
+    "Tomato___healthy": {
+      "total_images": 1591,
+      "valid_images": 1591,
+      "formats": {
+        ".jpg": 1591
+      }
+    }
+  },
+  "duplicate_hash_count": 21
+}

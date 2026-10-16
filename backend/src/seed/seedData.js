@@ -567,7 +567,7 @@ export const seedDatabase = async () => {
 };
 
 // If run directly
-if (process.argv[1].endsWith('seedData.js')) {
+if (process.argv[1] && process.argv[1].endsWith('seedData.js')) {
   (async () => {
     await connectDB();
     await seedDatabase();

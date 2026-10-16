@@ -9,8 +9,12 @@ export const createDiagnosis = async (req, res, next) => {
     let imageUrl = '';
     const { cropName = 'Tomato', cropId, fieldBlock = 'Block A', base64Image, clientOfflineId } = req.body;
 
+    let imageBuffer = null;
     if (req.file) {
       imageUrl = getImageUrl(req, req.file.filename);
+      if (req.file.buffer) {
+        imageBuffer = req.file.buffer;
+      }
     } else if (base64Image) {
       imageUrl = saveBase64Image(base64Image, 'scan');
     } else if (req.body.imageUrl) {
@@ -19,10 +23,12 @@ export const createDiagnosis = async (req, res, next) => {
       imageUrl = 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80';
     }
 
-    // Run ML inference
+    // Run ML inference with real EfficientNet ONNX model
     const inferenceResult = await mlInference.runDiseaseDiagnosis({
       cropName,
       imageUrl,
+      imageBuffer,
+      base64Image,
       fieldBlock,
     });
 

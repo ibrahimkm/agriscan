@@ -1,10 +1,12 @@
 import os
 import sys
 import json
+import shutil
 import argparse
 from pathlib import Path
+from typing import Dict, Any
 
-# Add ml folder and project root to sys.path to support execution from any directory
+# Add ml folder and project root to sys.path
 _ml_dir = str(Path(__file__).resolve().parent)
 _proj_root = str(Path(__file__).resolve().parent.parent)
 for p in [_ml_dir, _proj_root]:
@@ -16,102 +18,341 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 
-try:
-    from ml.model import get_model
-except ImportError:
-    from model import get_model
-
-try:
-    from ml.dataset import LEAF_DISEASE_CLASSES
-except ImportError:
-    from dataset import LEAF_DISEASE_CLASSES
+from ml.model import get_model
+from ml.dataset import PLANTVILLAGE_CLASSES, NORMALIZE_MEAN, NORMALIZE_STD
 
 DEFAULT_CHECKPOINT_PATH = os.path.join(_ml_dir, "checkpoints", "best_leaf_model.pth")
-DEFAULT_OUTPUT_ONNX = os.path.join(_proj_root, "frontend", "public", "models", "leaf_disease_model.onnx")
-DEFAULT_OUTPUT_JSON = os.path.join(_proj_root, "frontend", "public", "models", "disease_classes.json")
+DEFAULT_FRONTEND_ONNX = os.path.join(_proj_root, "frontend", "public", "models", "leaf_disease_model.onnx")
+DEFAULT_FRONTEND_JSON = os.path.join(_proj_root, "frontend", "public", "models", "disease_classes.json")
+DEFAULT_BACKEND_ONNX = os.path.join(_proj_root, "backend", "ml_models", "leaf_disease_model.onnx")
+DEFAULT_BACKEND_JSON = os.path.join(_proj_root, "backend", "ml_models", "disease_classes.json")
 
-# Multilingual agronomic guidance catalog for all detected diseases
-DISEASE_METADATA = {
-    "Tomato___Early_blight": {
-        "crop": "Tomato",
-        "disease": "Early Blight",
-        "scientificName": "Alternaria solani",
+# Complete multilingual agronomic guidance catalog for all 38 PlantVillage classes
+DISEASE_METADATA_TEMPLATE = {
+    "Apple___Apple_scab": {
+        "crop": "Apple",
+        "disease": "Apple Scab",
+        "scientificName": "Venturia inaequalis",
+        "severity": "moderate",
+        "affectedPercentage": 28,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Apple scab is a severe fungal disease caused by Venturia inaequalis. It produces olive-green to dark velvety lesions on leaves and fruit, causing premature defoliation.",
+                "symptoms": ["Olive-green or brownish velvety spots on leaf surface", "Curling, yellowing and premature leaf drop", "Corky scab lesions on fruit"],
+                "recommendedAction": "Apply protective fungicides (Captan, Mancozeb) at bud break. Rake and destroy fallen leaves to reduce overwintering ascospore inoculum.",
+                "immediateActionTitle": "Foliar Fungicide & Sanitation",
+                "immediateActionDesc": "Apply captan or myclobutanil fungicide and rake up fallen leaves under canopy."
+            },
+            "hi": {
+                "whatIsIt": "सेब का स्कैब (Apple Scab) एक फफूंद जनित रोग है जो पत्तियों और फलों पर काले-भूरे मखमली धब्बे बनाता है।",
+                "symptoms": ["पत्तियों पर जैतून-हरे से काले धब्बे", "पत्तियों का मुड़ना और जल्दी गिरना", "फलों पर खुरदरे धब्बे"],
+                "recommendedAction": "कली खिलते समय कैप्टन या मैंकोजेब कवकनाशी का छिड़काव करें और गिरी हुई पत्तियों को नष्ट करें।",
+                "immediateActionTitle": "कवकनाशी छिड़काव",
+                "immediateActionDesc": "तुरंत कैप्टन कवकनाशी का छिड़काव करें और बगीचे की सफाई करें।"
+            }
+        }
+    },
+    "Apple___Black_rot": {
+        "crop": "Apple",
+        "disease": "Black Rot",
+        "scientificName": "Botryosphaeria obtusa",
+        "severity": "severe",
+        "affectedPercentage": 35,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Black rot causes frogeye leaf spots, fruit rot, and twig cankers on apple trees, severely weakening the canopy.",
+                "symptoms": ["Small purple specks enlarging into 'frogeye' spots with tan centers", "Black, mummified rotting fruit", "Sunken bark cankers on branches"],
+                "recommendedAction": "Prune out dead wood, fire blight strikes, and cankers. Apply thiophanate-methyl or captan fungicide.",
+                "immediateActionTitle": "Prune Cankers & Spray",
+                "immediateActionDesc": "Prune dead wood and mummified fruit, then apply protective fungicide."
+            }
+        }
+    },
+    "Apple___Cedar_apple_rust": {
+        "crop": "Apple",
+        "disease": "Cedar Apple Rust",
+        "scientificName": "Gymnosporangium juniperi-virginianae",
+        "severity": "moderate",
+        "affectedPercentage": 25,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Cedar apple rust is a heteroecious rust fungus that requires both apple trees and eastern red cedar/juniper to complete its life cycle.",
+                "symptoms": ["Bright orange-yellow circular leaf spots", "Small black pycnia in centers of spots", "Tube-like aecia on leaf undersides"],
+                "recommendedAction": "Apply sterol inhibitor fungicides (myclobutanil) early in spring. Remove nearby wild red cedar galls.",
+                "immediateActionTitle": "Apply Rust Fungicide",
+                "immediateActionDesc": "Apply myclobutanil immediately and inspect nearby juniper trees."
+            }
+        }
+    },
+    "Apple___healthy": {
+        "crop": "Apple",
+        "disease": "Healthy Leaf",
+        "scientificName": "Malus domestica",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Apple foliage displays optimal chlorophyll saturation with no pathogenic lesion signatures.",
+                "symptoms": ["Vibrant green foliage", "Smooth margins without spotting", "Healthy venation"],
+                "recommendedAction": "Maintain routine orchard sanitation, balanced fertilization, and moisture monitoring.",
+                "immediateActionTitle": "Routine Maintenance",
+                "immediateActionDesc": "No active intervention required; sustain preventive management."
+            }
+        }
+    },
+    "Blueberry___healthy": {
+        "crop": "Blueberry",
+        "disease": "Healthy Leaf",
+        "scientificName": "Vaccinium corymbosum",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Blueberry foliage displays healthy photosynthetic pigmentation without necrotic symptoms.",
+                "symptoms": ["Uniform green leaves", "No marginal scorching", "Strong root canopy vigor"],
+                "recommendedAction": "Keep soil pH acidic (4.5 - 5.5) and sustain organic mulch.",
+                "immediateActionTitle": "Optimal Canopy",
+                "immediateActionDesc": "Maintain soil acidity and drip irrigation schedule."
+            }
+        }
+    },
+    "Cherry_(including_sour)___Powdery_mildew": {
+        "crop": "Cherry",
+        "disease": "Powdery Mildew",
+        "scientificName": "Podosphaera clandestina",
+        "severity": "moderate",
+        "affectedPercentage": 30,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Powdery mildew forms a circular white felt-like fungal coating on young cherry leaves and shoots.",
+                "symptoms": ["White talcum-like powdery patches on leaves", "Leaf curling and distortion", "Stunted terminal growth"],
+                "recommendedAction": "Apply sulfur or potassium bicarbonate early. Prune to improve canopy air circulation.",
+                "immediateActionTitle": "Apply Sulfur / Biofungicide",
+                "immediateActionDesc": "Spray micronized wettable sulfur or horticultural oil during cool periods."
+            }
+        }
+    },
+    "Cherry_(including_sour)___healthy": {
+        "crop": "Cherry",
+        "disease": "Healthy Leaf",
+        "scientificName": "Prunus avium",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Cherry leaf canopy exhibits vigorous, uniform green structure.",
+                "symptoms": ["Deep green coloration", "Intact leaf margins", "Active shoot elongation"],
+                "recommendedAction": "Continue regular pruning and preventive dormancy sprays.",
+                "immediateActionTitle": "Maintain Care",
+                "immediateActionDesc": "No active pathogen found."
+            }
+        }
+    },
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+        "crop": "Corn (Maize)",
+        "disease": "Gray Leaf Spot",
+        "scientificName": "Cercospora zeae-maydis",
+        "severity": "severe",
+        "affectedPercentage": 40,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Gray leaf spot is a devastating foliar pathogen of corn, producing rectangular lesions delimited by leaf veins.",
+                "symptoms": ["Long, narrow rectangular tan lesions", "Lesions restricted between parallel leaf veins", "Premature senescence of foliage"],
+                "recommendedAction": "Apply strobilurin or triazole fungicides before tasseling. Implement crop rotation with non-host crops.",
+                "immediateActionTitle": "Foliar Fungicide Application",
+                "immediateActionDesc": "Apply pyraclostrobin or azoxystrobin before canopy closure."
+            }
+        }
+    },
+    "Corn_(maize)___Common_rust_": {
+        "crop": "Corn (Maize)",
+        "disease": "Common Rust",
+        "scientificName": "Puccinia sorghi",
         "severity": "moderate",
         "affectedPercentage": 32,
         "descriptions": {
             "en": {
-                "whatIsIt": "Early blight is a fungal disease caused by Alternaria solani affecting tomato and potato foliage. It manifests as dark concentric rings surrounded by yellow halos.",
-                "symptoms": ["Dark brown spots with concentric target-rings", "Chlorotic yellowing around leaf lesions", "Starts on lower, mature leaves"],
-                "recommendedAction": "Apply a copper-based fungicide (Copper Hydroxide) or Chlorothalonil early morning and ensure proper spacing for airflow.",
-                "immediateActionTitle": "Isolate & Prune Foliage",
-                "immediateActionDesc": "Prune infected bottom leaves and safely destroy them to halt fungal spore progression."
-            },
-            "hi": {
-                "whatIsIt": "अगेती झुलसा (Early Blight) एक फफूंद जनित रोग है जो पत्तियों पर काले छल्लेदार धब्बे और पीलापन पैदा करता है।",
-                "symptoms": ["पत्तियों पर गहरे भूरे रंग के संकेंद्रित छल्ले", "धब्बों के चारों ओर पीलापन", "निचली पत्तियों से शुरू होता है"],
-                "recommendedAction": "तुरंत कॉपर युक्त कवकनाशी का छिड़काव करें और पौधों के बीच हवा का प्रवाह सुनिश्चित करें।",
-                "immediateActionTitle": "प्रभावित पत्तियां हटाएं",
-                "immediateActionDesc": "रोगग्रस्त निचली पत्तियों को तुरंत काटकर नष्ट कर दें ताकि फफूंद न फैले।"
-            },
-            "te": {
-                "whatIsIt": "ముందస్తు మచ్చ తెగులు ఆకులపై గోధుమ రంగు వలయాలు మరియు పసుపు రంగు మచ్చలను కలిగిస్తుంది.",
-                "symptoms": ["ఆకులపై వలయాకారపు గోధుమ రంగు మచ్చలు", "మచ్చల చుట్టూ పసుపు రంగు అంచులు", "దిగువ పాత ఆకుల నుండి మొదలవుతుంది"],
-                "recommendedAction": "వెంటనే రాగి ఆధారిత శిలీంధ్ర సంహారిణి (కాపర్ హైడ్రాక్సైడ్) పిచికారీ చేయండి.",
-                "immediateActionTitle": "ఆకులను తొలగించండి",
-                "immediateActionDesc": "తెగులు సోకిన దిగువ ఆకులను కత్తిరించి నాశనం చేయండి."
-            },
-            "ta": {
-                "whatIsIt": "ஆரம்பகால கருகல் நோய் இலைகளில் அடர் பழுப்பு நிற வளையங்களையும் மஞ்சள் புள்ளிகளையும் உருவாக்குகிறது.",
-                "symptoms": ["இலைகளில் அடர் பழுப்பு நிற வட்ட வடிவ புள்ளிகள்", "புள்ளிகளை சுற்றி மஞ்சள் வளையம்", "கீழ் இலைகளில் தொடங்கி பரவுகிறது"],
-                "recommendedAction": "உடனடியாக காப்பர் சார்ந்த பூஞ்சைக்கொல்லி தெளிக்கவும்.",
-                "immediateActionTitle": "பாதிக்கப்பட்ட இலைகளை அகற்றவும்",
-                "immediateActionDesc": "நோய் பரவாமல் தடுக்க பாதிக்கப்பட்ட கீழ் இலைகளை வெட்டி அழிக்கவும்."
+                "whatIsIt": "Common rust produces brick-red, powdery pustules on both upper and lower leaf surfaces of maize.",
+                "symptoms": ["Oval to elongate cinnamon-brown powdery pustules", "Ruptured epidermis on leaf blades", "Pustules turning dark brown later"],
+                "recommendedAction": "Plant resistant hybrids. In seed corn or sweet corn, apply triazole fungicides if rust appears before silking.",
+                "immediateActionTitle": "Monitor & Treat if Widespread",
+                "immediateActionDesc": "Inspect lower leaves and apply triazole fungicide if >5% leaf area affected."
             }
         }
     },
-    "Tomato___Late_blight": {
-        "crop": "Tomato",
-        "disease": "Late Blight",
-        "scientificName": "Phytophthora infestans",
+    "Corn_(maize)___Northern_Leaf_Blight": {
+        "crop": "Corn (Maize)",
+        "disease": "Northern Leaf Blight",
+        "scientificName": "Exserohilum turcicum",
         "severity": "severe",
         "affectedPercentage": 45,
         "descriptions": {
             "en": {
-                "whatIsIt": "Late blight is a destructive water-mold pathogen causing large, irregular water-soaked lesions that turn dark brown and rot rapidly.",
-                "symptoms": ["Large irregular water-soaked spots", "White fuzzy mold on underside of leaves in wet weather", "Rapid wilting and leaf collapse"],
-                "recommendedAction": "Apply systemic fungicides like Metalaxyl or Mancozeb immediately. Avoid sprinkler irrigation.",
+                "whatIsIt": "Northern corn leaf blight causes large, cigar-shaped grayish-green lesions that destroy photosynthesizing tissue.",
+                "symptoms": ["Long elliptical or cigar-shaped grayish lesions (2-15 cm)", "Dark fungal spores inside lesions during damp weather", "Extensive blighting of upper leaves"],
+                "recommendedAction": "Rotate crops, till infected corn residue, and spray systemic fungicides when conditions favor spread.",
                 "immediateActionTitle": "Emergency Protective Spray",
-                "immediateActionDesc": "Apply systemic fungicide within 12 hours and remove collapsing vines."
-            },
-            "hi": {
-                "whatIsIt": "पछेती झुलसा (Late Blight) बहुत तेजी से फैलने वाला रोग है जिससे पत्तियां सड़ने और सूखने लगती हैं।",
-                "symptoms": ["पत्तियों पर बड़े अनियमित काले धब्बे", "पत्ती के नीचे सफेद फफूंद", "पौधे का तेजी से मुरझाना"],
-                "recommendedAction": "तुरंत मैंकोजेब या मेटालेक्सिल कवकनाशी का छिड़काव करें।",
-                "immediateActionTitle": "आपातकालीन कवकनाशी स्प्रे",
-                "immediateActionDesc": "12 घंटे के भीतर दवा का छिड़काव करें और खराब शाखाओं को हटाएं।"
+                "immediateActionDesc": "Apply strobilurin/triazole fungicide combination immediately."
             }
         }
     },
-    "Tomato___healthy": {
-        "crop": "Tomato",
+    "Corn_(maize)___healthy": {
+        "crop": "Corn (Maize)",
         "disease": "Healthy Leaf",
-        "scientificName": "Solanum lycopersicum",
-        "severity": "none",
+        "scientificName": "Zea mays",
+        "severity": "healthy",
         "affectedPercentage": 0,
         "descriptions": {
             "en": {
-                "whatIsIt": "Leaf tissue is vibrant, robust, and shows no symptoms of fungal, bacterial, or viral disease.",
-                "symptoms": ["Uniform green pigmentation", "Intact leaf margins", "No necrotic spots or yellowing"],
-                "recommendedAction": "Maintain balanced N-P-K fertilization and consistent soil moisture.",
-                "immediateActionTitle": "Routine Maintenance",
-                "immediateActionDesc": "Continue regular monitoring and optimal drip irrigation."
-            },
-            "hi": {
-                "whatIsIt": "पत्ती पूरी तरह स्वस्थ है और इसमें किसी भी बीमारी के लक्षण नहीं हैं।",
-                "symptoms": ["एकसमान हरा रंग", "मजबूत पत्ती संरचना", "कोई धब्बा या पीलापन नहीं"],
-                "recommendedAction": "नियमित रूप से संतुलित खाद और पानी देते रहें।",
-                "immediateActionTitle": "नियमित देखभाल",
-                "immediateActionDesc": "फसल की सामान्य निगरानी जारी रखें।"
+                "whatIsIt": "Corn plant shows robust leaf health with no blighting or pustules.",
+                "symptoms": ["Broad deep green leaves", "No vein-limited striping", "Robust stalk and collar vigor"],
+                "recommendedAction": "Maintain balanced nitrogen nutrition and soil drainage.",
+                "immediateActionTitle": "Standard Agronomy",
+                "immediateActionDesc": "Maintain irrigation and scout regularly."
+            }
+        }
+    },
+    "Grape___Black_rot": {
+        "crop": "Grape",
+        "disease": "Black Rot",
+        "scientificName": "Guignardia bidwellii",
+        "severity": "severe",
+        "affectedPercentage": 38,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Black rot affects all green vine parts, causing reddish-brown leaf spots with black border dots and shriveled black mummies.",
+                "symptoms": ["Small reddish-brown circular leaf spots", "Tiny black fruiting bodies (pycnidia) in rings", "Fruit turning into hard black mummies"],
+                "recommendedAction": "Apply myclobutanil or mancozeb at 10-14 day intervals from 1-inch shoot growth through post-bloom.",
+                "immediateActionTitle": "Grapevine Fungicide Spray",
+                "immediateActionDesc": "Spray myclobutanil and prune out all mummified fruit clusters."
+            }
+        }
+    },
+    "Grape___Esca_(Black_Measles)": {
+        "crop": "Grape",
+        "disease": "Esca (Black Measles)",
+        "scientificName": "Phaeomoniella chlamydospora",
+        "severity": "severe",
+        "affectedPercentage": 42,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Esca is a complex fungal vascular decline disease causing 'tiger-stripe' interveinal chlorosis and berry spotting.",
+                "symptoms": ["Tiger-stripe pattern of yellow/red bands between veins", "Dried marginal leaf scorch", "Dark purple flecks on berries ('measles')"],
+                "recommendedAction": "Prune during dry dormant periods. Seal pruning wounds with wound protectant. Replace severely stunted vines.",
+                "immediateActionTitle": "Wound Protection & Pruning",
+                "immediateActionDesc": "Sanitize pruning tools and seal large wood wounds."
+            }
+        }
+    },
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": {
+        "crop": "Grape",
+        "disease": "Leaf Blight",
+        "scientificName": "Pseudocercospora vitis",
+        "severity": "moderate",
+        "affectedPercentage": 28,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Isariopsis leaf spot produces irregular brown necrotic patches bordered by yellow halos on grape leaves.",
+                "symptoms": ["Irregular angular dark brown spots", "Spots coalescing into large necrotic areas", "Premature defoliation before harvest"],
+                "recommendedAction": "Apply copper or azoxystrobin fungicides. Prune excess vine canopy to encourage rapid airflow.",
+                "immediateActionTitle": "Foliar Copper Treatment",
+                "immediateActionDesc": "Apply copper hydroxide spray and prune dense inner canopy."
+            }
+        }
+    },
+    "Grape___healthy": {
+        "crop": "Grape",
+        "disease": "Healthy Leaf",
+        "scientificName": "Vitis vinifera",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Grapevine canopy is in prime physiological health with strong photosynthetic efficiency.",
+                "symptoms": ["Uniform green palmate leaves", "No interveinal discoloration", "Supple shoots and tendrils"],
+                "recommendedAction": "Maintain canopy wire training and preventive pest management.",
+                "immediateActionTitle": "Routine Canopy Management",
+                "immediateActionDesc": "Canopy is healthy."
+            }
+        }
+    },
+    "Orange___Haunglongbing_(Citrus_greening)": {
+        "crop": "Orange / Citrus",
+        "disease": "Citrus Greening (HLB)",
+        "scientificName": "Candidatus Liberibacter asiaticus",
+        "severity": "severe",
+        "affectedPercentage": 50,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Citrus greening (Huanglongbing) is an incurable bacterial disease vectored by the Asian citrus psyllid, leading to tree decline.",
+                "symptoms": ["Asymmetrical blotchy mottle on leaves", "Yellow shoots ('yellow dragon')", "Small, lopsided, bitter fruit with dark aborted seeds"],
+                "recommendedAction": "Control psyllid vectors with targeted insecticides. Remove confirmed infected trees to protect surrounding grove.",
+                "immediateActionTitle": "Psyllid Control & Quarantine",
+                "immediateActionDesc": "Treat vector psyllids immediately and consult local agricultural quarantine."
+            }
+        }
+    },
+    "Peach___Bacterial_spot": {
+        "crop": "Peach",
+        "disease": "Bacterial Spot",
+        "scientificName": "Xanthomonas campestris pv. pruni",
+        "severity": "moderate",
+        "affectedPercentage": 30,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Bacterial spot causes water-soaked angular leaf lesions that drop out, giving foliage a 'shot-hole' appearance.",
+                "symptoms": ["Angular water-soaked leaf spots turning purple-brown", "Lesion centers dropping out ('shot-hole')", "Cracked, pitted lesions on peach fruit"],
+                "recommendedAction": "Apply copper sprays at bud break and oxytetracycline during the growing season. Plant resistant peach varieties.",
+                "immediateActionTitle": "Apply Copper / Antibiotic Spray",
+                "immediateActionDesc": "Spray low-rate copper hydroxide or oxytetracycline during early vegetative flush."
+            }
+        }
+    },
+    "Peach___healthy": {
+        "crop": "Peach",
+        "disease": "Healthy Leaf",
+        "scientificName": "Prunus persica",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Peach tree foliage demonstrates clean, unspotted green lanceolate leaves.",
+                "symptoms": ["Smooth unblemished leaves", "No shot-holes or curling", "Vigorous shoot growth"],
+                "recommendedAction": "Maintain dormant copper sprays and balanced irrigation.",
+                "immediateActionTitle": "Standard Orchard Practice",
+                "immediateActionDesc": "Tree canopy is in excellent condition."
+            }
+        }
+    },
+    "Pepper,_bell___Bacterial_spot": {
+        "crop": "Bell Pepper",
+        "disease": "Bacterial Spot",
+        "scientificName": "Xanthomonas campestris pv. vesicatoria",
+        "severity": "severe",
+        "affectedPercentage": 36,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Bacterial spot on bell peppers produces small, circular, dark brown lesions that expand and cause severe leaf dropping.",
+                "symptoms": ["Water-soaked circular lesions on lower leaf surfaces", "Brown, necrotic centers with yellow chlorotic rings", "Sunken rough spots on fruit"],
+                "recommendedAction": "Apply fixed copper bactericide mixed with mancozeb. Avoid working in fields when foliage is wet.",
+                "immediateActionTitle": "Copper Bactericide Application",
+                "immediateActionDesc": "Spray copper hydroxide mixed with mancozeb to prevent bacterial spread."
+            }
+        }
+    },
+    "Pepper,_bell___healthy": {
+        "crop": "Bell Pepper",
+        "disease": "Healthy Leaf",
+        "scientificName": "Capsicum annuum",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Bell pepper leaf is completely healthy with crisp green pigmentation.",
+                "symptoms": ["Smooth ovate foliage", "No water-soaked spots", "Healthy flower buds"],
+                "recommendedAction": "Maintain consistent drip moisture and balanced potassium-calcium feeding.",
+                "immediateActionTitle": "Optimal Care",
+                "immediateActionDesc": "No pathogen detected."
             }
         }
     },
@@ -120,14 +361,14 @@ DISEASE_METADATA = {
         "disease": "Early Blight",
         "scientificName": "Alternaria solani",
         "severity": "moderate",
-        "affectedPercentage": 28,
+        "affectedPercentage": 32,
         "descriptions": {
             "en": {
-                "whatIsIt": "Potato early blight produces target-like circular dark brown lesions on foliage, impairing tuber sizing.",
-                "symptoms": ["Concentric dark brown rings", "Yellow halos on foliage", "Premature defoliation"],
-                "recommendedAction": "Apply protectant fungicides (Chlorothalonil, Mancozeb) every 7-10 days under warm humid conditions.",
-                "immediateActionTitle": "Prevent Spore Spread",
-                "immediateActionDesc": "Spray protectant fungicide and avoid excessive nitrogen stress."
+                "whatIsIt": "Early blight is a fungal disease causing target-like concentric rings on potato leaves, usually starting on mature lower canopy.",
+                "symptoms": ["Dark brown spots with concentric ring pattern", "Yellow halos surrounding necrotic spots", "Premature vine defoliation"],
+                "recommendedAction": "Apply chlorothalonil, mancozeb, or copper fungicides at 7-10 day intervals. Ensure adequate soil nitrogen.",
+                "immediateActionTitle": "Apply Protective Fungicide",
+                "immediateActionDesc": "Apply chlorothalonil spray and avoid overhead sprinkler watering."
             }
         }
     },
@@ -136,200 +377,435 @@ DISEASE_METADATA = {
         "disease": "Late Blight",
         "scientificName": "Phytophthora infestans",
         "severity": "severe",
-        "affectedPercentage": 52,
+        "affectedPercentage": 48,
         "descriptions": {
             "en": {
-                "whatIsIt": "Late blight can completely defoliate potato canopies in days and infect tubers with dry rot.",
-                "symptoms": ["Water-soaked dark lesions", "White sporulation on leaf underside", "Foul odor and vine collapse"],
-                "recommendedAction": "Immediately spray Cymoxanil + Mancozeb or Dimethomorph formulations.",
-                "immediateActionTitle": "Critical Chemical Intervention",
-                "immediateActionDesc": "Halt overhead irrigation and apply systemic curative fungicide immediately."
+                "whatIsIt": "Late blight is the aggressive oomycete pathogen responsible for the Irish potato famine. It causes rapid rotting of vines and tubers.",
+                "symptoms": ["Large irregular water-soaked spots on leaves", "White velvety sporulation on leaf underside in humid conditions", "Rapid brown wilt and vine collapse"],
+                "recommendedAction": "Apply systemic fungicides (mefenoxam, cymoxanil, mandipropamid) immediately. Destroy severely blighted vines.",
+                "immediateActionTitle": "Emergency Systemic Fungicide",
+                "immediateActionDesc": "Apply systemic late blight fungicide within 24 hours to halt field epidemic."
             }
         }
     },
     "Potato___healthy": {
         "crop": "Potato",
-        "disease": "Healthy Potato Leaf",
+        "disease": "Healthy Leaf",
         "scientificName": "Solanum tuberosum",
-        "severity": "none",
+        "severity": "healthy",
         "affectedPercentage": 0,
         "descriptions": {
             "en": {
-                "whatIsIt": "The potato foliage is vigorous and free from pathological distress.",
-                "symptoms": ["Healthy chlorophyll distribution", "No leaf blights or curling"],
-                "recommendedAction": "Ensure regular hilling and balanced potassium application.",
-                "immediateActionTitle": "Preventive Care",
-                "immediateActionDesc": "Keep canopy aerated and scout fields weekly."
+                "whatIsIt": "Potato plant foliage displays prime health and strong vegetative development.",
+                "symptoms": ["Rich green compound leaves", "No target rings or water-soaked lesions", "Healthy stolon vigor"],
+                "recommendedAction": "Continue preventive fungicide schedule during humid periods.",
+                "immediateActionTitle": "Routine Scouting",
+                "immediateActionDesc": "Maintain proper hilling and scouting."
             }
         }
     },
-    "Rice___Leaf_Blast": {
-        "crop": "Rice",
-        "disease": "Rice Leaf Blast",
-        "scientificName": "Magnaporthe oryzae",
-        "severity": "severe",
-        "affectedPercentage": 42,
+    "Raspberry___healthy": {
+        "crop": "Raspberry",
+        "disease": "Healthy Leaf",
+        "scientificName": "Rubus idaeus",
+        "severity": "healthy",
+        "affectedPercentage": 0,
         "descriptions": {
             "en": {
-                "whatIsIt": "Rice blast is a destructive fungal disease causing diamond or spindle-shaped lesions with gray centers and brown margins.",
-                "symptoms": ["Spindle/diamond-shaped lesions", "Gray or whitish center with reddish-brown border", "Severe lodging under heavy attack"],
-                "recommendedAction": "Apply Tricyclazole 75 WP (0.6g/L) or Isoprothiolane at the onset of lesions.",
-                "immediateActionTitle": "Apply Tricyclazole",
-                "immediateActionDesc": "Spray blast-specific fungicide and avoid excessive nitrogen application."
+                "whatIsIt": "Raspberry leaf exhibits healthy serrated structure and uniform pigmentation.",
+                "symptoms": ["Pinnate green leaves with pale undersides", "No anthracnose lesions", "Strong primocane growth"],
+                "recommendedAction": "Prune out spent floricanes after fruiting and keep rows well-ventilated.",
+                "immediateActionTitle": "Canopy Maintenance",
+                "immediateActionDesc": "Canes are healthy."
             }
         }
     },
-    "Rice___Brown_Spot": {
-        "crop": "Rice",
-        "disease": "Rice Brown Spot",
-        "scientificName": "Bipolaris oryzae",
+    "Soybean___healthy": {
+        "crop": "Soybean",
+        "disease": "Healthy Leaf",
+        "scientificName": "Glycine max",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Soybean trifoliate leaves are healthy with no fungal spotting or chlorosis.",
+                "symptoms": ["Uniform green trifoliate leaves", "No Septoria brown spots", "Active nodulation"],
+                "recommendedAction": "Scout weekly for pod pests and fungal rust during reproductive stages.",
+                "immediateActionTitle": "Routine Scouting",
+                "immediateActionDesc": "Soybean canopy is robust."
+            }
+        }
+    },
+    "Squash___Powdery_mildew": {
+        "crop": "Squash",
+        "disease": "Powdery Mildew",
+        "scientificName": "Podosphaera xanthii",
+        "severity": "moderate",
+        "affectedPercentage": 34,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Powdery mildew creates distinctive white dusty powder spots on both sides of cucurbit leaves, reducing yield.",
+                "symptoms": ["White powdery talc-like spots on leaves and stems", "Leaves yellowing and drying prematurely", "Sunburn on fruit due to defoliation"],
+                "recommendedAction": "Apply potassium bicarbonate, neem oil, or synthetic fungicides (myclobutanil). Avoid crowded plant spacing.",
+                "immediateActionTitle": "Foliar Fungicide Spray",
+                "immediateActionDesc": "Spray potassium bicarbonate or azoxystrobin early morning."
+            }
+        }
+    },
+    "Strawberry___Leaf_scorch": {
+        "crop": "Strawberry",
+        "disease": "Leaf Scorch",
+        "scientificName": "Diplocarpon earlianum",
         "severity": "moderate",
         "affectedPercentage": 30,
         "descriptions": {
             "en": {
-                "whatIsIt": "Brown spot causes oval to circular dark brown spots across rice leaf blades and panicles, often linked to nutrient-deficient soil.",
-                "symptoms": ["Small cylindrical to oval brown spots", "Yellowish halo surrounding dark core", "Reduced grain filling"],
-                "recommendedAction": "Apply balanced potassium and spray Propiconazole or Hexaconazole.",
-                "immediateActionTitle": "Soil Nutrition & Spray",
-                "immediateActionDesc": "Correct soil potash deficiency and apply foliar fungicide."
+                "whatIsIt": "Leaf scorch produces numerous small purplish spots that enlarge and coalesce, giving the foliage a burned appearance.",
+                "symptoms": ["Irregular purple blotches without distinct white centers", "Leaf edges curling upward and drying", "Burned, scorched look across planting"],
+                "recommendedAction": "Remove infected leaves after harvest. Apply captan or dodine fungicide during spring leaf emergence.",
+                "immediateActionTitle": "Prune & Protect Foliage",
+                "immediateActionDesc": "Prune dry scorched leaves and apply protective fungicide."
             }
         }
     },
-    "Rice___healthy": {
-        "crop": "Rice",
-        "disease": "Healthy Rice Leaf",
-        "scientificName": "Oryza sativa",
-        "severity": "none",
+    "Strawberry___healthy": {
+        "crop": "Strawberry",
+        "disease": "Healthy Leaf",
+        "scientificName": "Fragaria ananassa",
+        "severity": "healthy",
         "affectedPercentage": 0,
         "descriptions": {
             "en": {
-                "whatIsIt": "Rice leaf shows clean erect blades with strong tillering and no fungal spots.",
-                "symptoms": ["Bright green foliage", "Smooth leaf surface without lesions"],
-                "recommendedAction": "Maintain optimal standing water depth (2-5cm) during active tillering.",
-                "immediateActionTitle": "Water Management",
-                "immediateActionDesc": "Maintain recommended water levels and split nitrogen doses."
+                "whatIsIt": "Strawberry crown foliage shows vibrant, unblemished trifoliate leaves.",
+                "symptoms": ["Glossy green leaves", "No purplish angular spots", "Robust crown growth"],
+                "recommendedAction": "Keep straw mulch fresh and avoid over-saturating crown.",
+                "immediateActionTitle": "Routine Care",
+                "immediateActionDesc": "Crown is healthy."
+            }
+        }
+    },
+    "Tomato___Bacterial_spot": {
+        "crop": "Tomato",
+        "disease": "Bacterial Spot",
+        "scientificName": "Xanthomonas vesicatoria",
+        "severity": "severe",
+        "affectedPercentage": 38,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Bacterial spot causes small, dark, greasy water-soaked lesions that turn brown with yellow halos, causing heavy leaf drop.",
+                "symptoms": ["Dark brown water-soaked angular spots", "Yellow chlorotic halos around lesions", "Black scab-like spots on green tomatoes"],
+                "recommendedAction": "Apply copper bactericide with mancozeb. Avoid overhead irrigation and sanitize pruning shears.",
+                "immediateActionTitle": "Copper Bactericide Spray",
+                "immediateActionDesc": "Apply fixed copper hydroxide and eliminate overhead watering."
+            }
+        }
+    },
+    "Tomato___Early_blight": {
+        "crop": "Tomato",
+        "disease": "Early Blight",
+        "scientificName": "Alternaria solani",
+        "severity": "moderate",
+        "affectedPercentage": 32,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Early blight is a fungal pathogen causing dark brown concentric target rings surrounded by yellow halos on tomato foliage.",
+                "symptoms": ["Dark concentric target rings on leaves", "Chlorotic yellowing around leaf lesions", "Progression from lower mature leaves upward"],
+                "recommendedAction": "Prune lower infected foliage. Apply copper hydroxide or chlorothalonil fungicide early in the morning.",
+                "immediateActionTitle": "Prune & Apply Copper Fungicide",
+                "immediateActionDesc": "Prune bottom leaves showing dark rings and spray copper fungicide."
+            },
+            "hi": {
+                "whatIsIt": "अगेती झुलसा (Early Blight) टमाटर का एक फफूंद जनित रोग है जो पत्तियों पर संकेंद्रित छल्ले बनाता है।",
+                "symptoms": ["काले छल्लेदार धब्बे", "धब्बों के चारों ओर पीलापन", "निचली पत्तियों से शुरुआत"],
+                "recommendedAction": "तुरंत कॉपर युक्त कवकनाशी का छिड़काव करें और निचली खराब पत्तियां काटें।",
+                "immediateActionTitle": "पत्तियां हटाएं और कवकनाशी छिड़कें",
+                "immediateActionDesc": "प्रभावित पत्तियां हटाकर नष्ट करें।"
+            }
+        }
+    },
+    "Tomato___Late_blight": {
+        "crop": "Tomato",
+        "disease": "Late Blight",
+        "scientificName": "Phytophthora infestans",
+        "severity": "severe",
+        "affectedPercentage": 46,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Late blight is a fast-moving water mold that causes large pale green water-soaked spots turning rapidly dark brown and rotting vines.",
+                "symptoms": ["Large greasy water-soaked lesions", "White fuzzy mold on leaf undersides in high humidity", "Rapid stem rot and fruit browning"],
+                "recommendedAction": "Apply systemic fungicides (mancozeb, metalaxyl) immediately. Destroy collapsing infected plants.",
+                "immediateActionTitle": "Emergency Systemic Treatment",
+                "immediateActionDesc": "Apply systemic fungicide within 12 hours and prune rotting foliage."
+            }
+        }
+    },
+    "Tomato___Leaf_Mold": {
+        "crop": "Tomato",
+        "disease": "Leaf Mold",
+        "scientificName": "Passalora fulva",
+        "severity": "moderate",
+        "affectedPercentage": 30,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Leaf mold thrives in high relative humidity (>85%), causing pale greenish-yellow spots on upper leaf surfaces and olive-green velvet mold below.",
+                "symptoms": ["Pale yellow spots on upper leaf surface", "Olive-green to grayish velvety mold on leaf underside", "Leaves curling, withering and dropping"],
+                "recommendedAction": "Increase greenhouse ventilation and lower relative humidity below 80%. Apply copper or chlorothalonil fungicide.",
+                "immediateActionTitle": "Improve Airflow & Spray",
+                "immediateActionDesc": "Prune inner canopy to improve ventilation and apply protective spray."
+            }
+        }
+    },
+    "Tomato___Septoria_leaf_spot": {
+        "crop": "Tomato",
+        "disease": "Septoria Leaf Spot",
+        "scientificName": "Septoria lycopersici",
+        "severity": "moderate",
+        "affectedPercentage": 34,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Septoria leaf spot produces circular spots with dark brown margins and gray or tan centers containing tiny black dots.",
+                "symptoms": ["Small circular spots with dark borders and tan centers", "Tiny black pycnidia specks inside spots", "Severe bottom-up leaf yellowing and defoliation"],
+                "recommendedAction": "Apply organic mulch around plant base to prevent soil splash. Spray chlorothalonil or copper fungicide.",
+                "immediateActionTitle": "Mulch Base & Fungicide Spray",
+                "immediateActionDesc": "Apply mulch to stop soil splashing and apply copper spray."
+            }
+        }
+    },
+    "Tomato___Spider_mites Two-spotted_spider_mite": {
+        "crop": "Tomato",
+        "disease": "Two-Spotted Spider Mites",
+        "scientificName": "Tetranychus urticae",
+        "severity": "moderate",
+        "affectedPercentage": 28,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Two-spotted spider mites pierce plant cells to feed on sap, causing yellow stippling and fine silken webbing on leaf undersides.",
+                "symptoms": ["Fine yellow or white stippling on leaf surface", "Delicate silken webbing on leaf undersides and shoot tips", "Leaves bronzing, drying and dropping"],
+                "recommendedAction": "Spray insecticidal soap, neem oil, or abamectin miticide. Release predatory mites (Phytoseiulus persimilis).",
+                "immediateActionTitle": "Apply Miticide / Insecticidal Soap",
+                "immediateActionDesc": "Spray neem oil or insecticidal soap thoroughly on leaf undersides."
+            }
+        }
+    },
+    "Tomato___Target_Spot": {
+        "crop": "Tomato",
+        "disease": "Target Spot",
+        "scientificName": "Corynespora cassiicola",
+        "severity": "moderate",
+        "affectedPercentage": 32,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Target spot produces circular brown lesions with light brown centers and dark concentric rings across leaf blades and fruit.",
+                "symptoms": ["Small pinpoint brown spots expanding into target patterns", "Lesions with light centers and dark concentric rings", "Sunken crater-like spots on green tomatoes"],
+                "recommendedAction": "Apply azoxystrobin, chlorothalonil, or copper fungicides. Ensure adequate plant spacing to facilitate rapid foliage drying.",
+                "immediateActionTitle": "Fungicide Spray & Spacing",
+                "immediateActionDesc": "Apply azoxystrobin and increase canopy spacing."
+            }
+        }
+    },
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+        "crop": "Tomato",
+        "disease": "Yellow Leaf Curl Virus",
+        "scientificName": "Tomato yellow leaf curl virus (TYLCV)",
+        "severity": "severe",
+        "affectedPercentage": 45,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "TYLCV is a devastating geminivirus transmitted by whiteflies (Bemisia tabaci), causing stunted growth, cupped leaves, and complete yield failure.",
+                "symptoms": ["Severe upward curling and cupping of leaflets", "Interveinal chlorosis and yellow margins", "Extreme stunting of plants and bushy upright habit"],
+                "recommendedAction": "Control whitefly vectors using yellow sticky traps and systemic insecticides. Rogue out infected plants immediately.",
+                "immediateActionTitle": "Control Whiteflies & Isolate",
+                "immediateActionDesc": "Rogue out infected plants immediately and treat whiteflies with imidacloprid or insecticidal soap."
+            }
+        }
+    },
+    "Tomato___Tomato_mosaic_virus": {
+        "crop": "Tomato",
+        "disease": "Tomato Mosaic Virus",
+        "scientificName": "Tomato mosaic virus (ToMV)",
+        "severity": "severe",
+        "affectedPercentage": 40,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "ToMV is a highly stable tobamovirus spread easily by mechanical contact, pruning tools, and hands, causing mottled leaves and distortion.",
+                "symptoms": ["Mottled light and dark green mosaic patterns on leaves", "Fern-like leaf distortion and stringy foliage", "Internal brown browning in tomato fruit"],
+                "recommendedAction": "Wash hands with soap and disinfect pruning shears with 20% non-fat dry milk or trisodium phosphate. Remove infected plants.",
+                "immediateActionTitle": "Sanitize & Remove Plant",
+                "immediateActionDesc": "Remove infected plant, do not compost, and sanitize all tools thoroughly."
+            }
+        }
+    },
+    "Tomato___healthy": {
+        "crop": "Tomato",
+        "disease": "Healthy Leaf",
+        "scientificName": "Solanum lycopersicum",
+        "severity": "healthy",
+        "affectedPercentage": 0,
+        "descriptions": {
+            "en": {
+                "whatIsIt": "Tomato plant foliage is in pristine health with vibrant dark green chlorophyll and no pathogenic lesions.",
+                "symptoms": ["Deep green compound foliage", "No chlorotic halos, curling, or necrotic spots", "Strong vascular stems and healthy trichomes"],
+                "recommendedAction": "Maintain standard drip irrigation, calcium nutrition to prevent blossom end rot, and regular scouting.",
+                "immediateActionTitle": "Routine Agronomic Care",
+                "immediateActionDesc": "Plant is fully healthy; sustain balanced irrigation and nutrition."
             }
         }
     }
 }
 
-def export_model_to_onnx(
-    checkpoint_path="ml/checkpoints/best_leaf_model.pth",
-    output_onnx_path="frontend/public/models/leaf_disease_model.onnx",
-    output_json_path="frontend/public/models/disease_classes.json",
-    img_size=224
-):
-    os.makedirs(os.path.dirname(output_onnx_path), exist_ok=True)
-    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
-    
-    print(f"[ONNX Export] Loading model from {checkpoint_path}...")
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
-    classes = checkpoint.get('classes', LEAF_DISEASE_CLASSES)
-    model_variant = checkpoint.get('model_variant', 'small')
-    
-    # Initialize and load weights
-    model = get_model(num_classes=len(classes), model_variant=model_variant, pretrained=False)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.eval()
-    
-    # Create dummy input tensor (Batch, Channels, Height, Width)
-    dummy_input = torch.randn(1, 3, img_size, img_size, dtype=torch.float32)
-    
-    print(f"[ONNX Export] Exporting to ONNX: {output_onnx_path} ...")
-    torch.onnx.export(
-        model,
-        (dummy_input,),
-        output_onnx_path,
-        export_params=True,
-        opset_version=14,
-        do_constant_folding=True,
-        input_names=['input_image'],
-        output_names=['class_probabilities'],
-        dynamic_axes={
-            'input_image': {0: 'batch_size'},
-            'class_probabilities': {0: 'batch_size'}
+
+def build_disease_classes_json(classes: list, output_paths: list):
+    """Generates disease_classes.json containing all detected classes."""
+    catalog = {
+        "modelName": "AgriScan-EfficientNet-B0-PlantVillage",
+        "architecture": "EfficientNet-B0",
+        "version": "v3.0-PlantVillage",
+        "inputShape": [1, 3, 224, 224],
+        "normalization": {
+            "mean": NORMALIZE_MEAN,
+            "std": NORMALIZE_STD,
         },
-        dynamo=False
-    )
-    
-    # Verify ONNX model integrity
-    onnx_model = onnx.load(output_onnx_path)
-    onnx.checker.check_model(onnx_model)
-    print("  [Validation] ONNX model structure verified successfully!")
-    
-    # Run test inference with ONNX Runtime to verify parity with PyTorch
-    ort_session = ort.InferenceSession(output_onnx_path)
-    ort_inputs = {ort_session.get_inputs()[0].name: dummy_input.numpy()}
-    ort_outs = ort_session.run(None, ort_inputs)
-    
-    with torch.no_grad():
-        pytorch_outs = model(dummy_input).numpy()
-        
-    np.testing.assert_allclose(pytorch_outs, ort_outs[0], rtol=1e-03, atol=1e-04)  # pyrefly: ignore[no-matching-overload]
-    print("  [Validation] PyTorch and ONNX Runtime outputs match within tight tolerance!")
-    
-    file_size_mb = os.path.getsize(output_onnx_path) / (1024 * 1024)
-    print(f"  [ONNX Export] Exported ONNX File Size: {file_size_mb:.2f} MB (Ultra-compact for Offline Browser WASM!)")
-    
-    # Generate Rich Disease Metadata JSON for Frontend
-    classes_metadata = []
-    for idx, cls_name in enumerate(classes):
-        parts = cls_name.split("___")
-        crop = parts[0].replace("_", " ")
-        disease_clean = parts[1].replace("_", " ") if len(parts) > 1 else "Unknown"
-        
-        meta = DISEASE_METADATA.get(cls_name, {
-            "crop": crop,
-            "disease": disease_clean,
-            "scientificName": f"{crop} Pathogen",
-            "severity": "none" if "healthy" in cls_name.lower() else "moderate",
-            "affectedPercentage": 0 if "healthy" in cls_name.lower() else 30,
-            "descriptions": {
-                "en": {
-                    "whatIsIt": f"{disease_clean} is a condition affecting {crop} leaves.",
-                    "symptoms": [f"Visual lesions characteristic of {disease_clean}", "Altered leaf pigmentation"],
-                    "recommendedAction": "Inspect leaf canopy, isolate infected sections, and consult local agronomic guidelines.",
-                    "immediateActionTitle": "Isolate & Monitor",
-                    "immediateActionDesc": "Isolate the plant and monitor surrounding foliage."
+        "classes": [],
+    }
+
+    for idx, raw_cls in enumerate(classes):
+        meta = DISEASE_METADATA_TEMPLATE.get(raw_cls, None)
+        if meta is None:
+            parts = raw_cls.split("___")
+            crop = parts[0].replace("_", " ").title()
+            disease = parts[1].replace("_", " ").title() if len(parts) > 1 else "Unknown"
+            is_healthy = "healthy" in disease.lower()
+            meta = {
+                "crop": crop,
+                "disease": disease,
+                "scientificName": f"{crop} Pathogen",
+                "severity": "healthy" if is_healthy else "moderate",
+                "affectedPercentage": 0 if is_healthy else 30,
+                "descriptions": {
+                    "en": {
+                        "whatIsIt": f"{disease} affecting {crop} leaves.",
+                        "symptoms": [f"Visual lesions characteristic of {disease}"],
+                        "recommendedAction": "Inspect leaf canopy and apply appropriate plant protection measures.",
+                        "immediateActionTitle": "Isolate & Monitor",
+                        "immediateActionDesc": "Isolate affected section and consult agronomic guidelines."
+                    }
                 }
             }
-        })
-        
-        classes_metadata.append({
+
+        item = {
             "index": idx,
-            "rawClass": cls_name,
-            "crop": meta.get("crop", crop),
-            "disease": meta.get("disease", disease_clean),
-            "scientificName": meta.get("scientificName", f"{crop} leaf"),
-            "severity": meta.get("severity", "moderate"),
-            "affectedPercentage": meta.get("affectedPercentage", 25),
-            "descriptions": meta.get("descriptions", {})
-        })
-        
-    final_json = {
-        "modelName": f"MobileNetV3-{model_variant.capitalize()}-LeafDisease",
-        "inputShape": [1, 3, img_size, img_size],
-        "normalization": {
-            "mean": [0.485, 0.456, 0.406],
-            "std": [0.229, 0.224, 0.225]
+            "rawClass": raw_cls,
+            "crop": meta["crop"],
+            "disease": meta["disease"],
+            "scientificName": meta["scientificName"],
+            "severity": meta["severity"],
+            "affectedPercentage": meta["affectedPercentage"],
+            "descriptions": meta["descriptions"],
+        }
+        catalog["classes"].append(item)
+
+    for p in output_paths:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(catalog, f, indent=2, ensure_ascii=False)
+        print(f"[Export] Saved class metadata catalog to: {p}")
+
+    return catalog
+
+
+def export_model_to_onnx(
+    checkpoint_path: str = DEFAULT_CHECKPOINT_PATH,
+    frontend_onnx: str = DEFAULT_FRONTEND_ONNX,
+    frontend_json: str = DEFAULT_FRONTEND_JSON,
+    backend_onnx: str = DEFAULT_BACKEND_ONNX,
+    backend_json: str = DEFAULT_BACKEND_JSON,
+):
+    """
+    Exports fine-tuned PyTorch checkpoint to ONNX format, validates it with onnx and onnxruntime,
+    and deploys it to both frontend and backend directories.
+    """
+    print(f"\n[Export ONNX] Loading PyTorch checkpoint: {checkpoint_path}")
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint not found at: {checkpoint_path}")
+
+    device = torch.device("cpu")
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    except TypeError:
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+    classes = checkpoint.get("classes", PLANTVILLAGE_CLASSES)
+    model_variant = checkpoint.get("model_variant", "efficientnet_b0")
+
+    model = get_model(num_classes=len(classes), model_variant=model_variant, pretrained=False)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
+
+    # Generate metadata catalog
+    build_disease_classes_json(classes, [frontend_json, backend_json])
+
+    # Export to ONNX
+    dummy_input = torch.randn(1, 3, 224, 224, requires_grad=False)
+    temp_onnx = os.path.join(_ml_dir, "artifacts", "model_export_temp.onnx")
+    os.makedirs(os.path.dirname(temp_onnx), exist_ok=True)
+
+    print(f"[Export ONNX] Converting PyTorch graph to ONNX format...")
+    export_kwargs = {
+        "export_params": True,
+        "opset_version": 17,
+        "do_constant_folding": True,
+        "input_names": ["input_image"],
+        "output_names": ["class_probabilities"],
+        "dynamic_axes": {
+            "input_image": {0: "batch_size"},
+            "class_probabilities": {0: "batch_size"},
         },
-        "classes": classes_metadata
     }
-    
-    with open(output_json_path, "w", encoding="utf-8") as f:
-        json.dump(final_json, f, indent=2, ensure_ascii=False)
-        
-    print(f"[JSON Metadata] Generated {output_json_path} with {len(classes_metadata)} disease profiles.")
+    try:
+        torch.onnx.export(model, dummy_input, temp_onnx, dynamo=False, **export_kwargs)
+    except TypeError:
+        torch.onnx.export(model, dummy_input, temp_onnx, **export_kwargs)
+
+    # Validate ONNX model with checker
+    print(f"[Export ONNX] Checking ONNX model integrity...")
+    onnx_model = onnx.load(temp_onnx)
+    onnx.checker.check_model(onnx_model)
+    print("  ✓ ONNX graph verification passed.")
+
+    # Validate with onnxruntime
+    print(f"[Export ONNX] Testing onnxruntime inference session...")
+    ort_session = ort.InferenceSession(temp_onnx)
+    ort_inputs = {ort_session.get_inputs()[0].name: dummy_input.numpy()}
+    ort_outs = ort_session.run(None, ort_inputs)
+
+    with torch.no_grad():
+        torch_out = model(dummy_input).numpy()
+
+    np.testing.assert_allclose(torch_out, ort_outs[0], rtol=1e-03, atol=1e-04)
+    print("  ✓ PyTorch and ONNX Runtime predictions match within tolerance.")
+
+    # Deploy to frontend and backend targets
+    for target in [frontend_onnx, backend_onnx]:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        shutil.copyfile(temp_onnx, target)
+        size_mb = os.path.getsize(target) / (1024 * 1024)
+        print(f"[Export ONNX] Saved deployable ONNX model to: {target} ({size_mb:.2f} MB)")
+
+    # Clean up temp
+    if os.path.exists(temp_onnx):
+        os.remove(temp_onnx)
+
+    print("\n" + "="*60)
+    print("           ONNX MODEL EXPORT & DEPLOYMENT COMPLETE")
+    print("="*60)
+    print(f" Frontend Model: {frontend_onnx}")
+    print(f" Frontend Meta:  {frontend_json}")
+    print(f" Backend Model:  {backend_onnx}")
+    print(f" Backend Meta:   {backend_json}")
+    print("="*60)
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Export PyTorch model to ONNX for Offline Web Inference")
+    parser = argparse.ArgumentParser(description="Export Trained PlantVillage Model to ONNX")
     parser.add_argument("--checkpoint", type=str, default=DEFAULT_CHECKPOINT_PATH)
-    parser.add_argument("--output_onnx", type=str, default=DEFAULT_OUTPUT_ONNX)
-    parser.add_argument("--output_json", type=str, default=DEFAULT_OUTPUT_JSON)
     args = parser.parse_args()
-    
-    export_model_to_onnx(
-        checkpoint_path=args.checkpoint,
-        output_onnx_path=args.output_onnx,
-        output_json_path=args.output_json
-    )
+    export_model_to_onnx(checkpoint_path=args.checkpoint)

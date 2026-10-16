@@ -16,20 +16,24 @@ try:
     from .dataset import (
         PlantLeafDataset,
         get_data_transforms,
-        create_synthetic_leaf_dataset,
+        create_stratified_splits,
+        PLANTVILLAGE_CLASSES,
         LEAF_DISEASE_CLASSES,
         NORMALIZE_MEAN,
         NORMALIZE_STD,
+        DEFAULT_DATA_DIR,
     )
 except ImportError:
     from model import LeafDiseaseClassifier, get_model
     from dataset import (
         PlantLeafDataset,
         get_data_transforms,
-        create_synthetic_leaf_dataset,
+        create_stratified_splits,
+        PLANTVILLAGE_CLASSES,
         LEAF_DISEASE_CLASSES,
         NORMALIZE_MEAN,
         NORMALIZE_STD,
+        DEFAULT_DATA_DIR,
     )
 
 __all__ = [
@@ -37,8 +41,10 @@ __all__ = [
     "get_model",
     "PlantLeafDataset",
     "get_data_transforms",
-    "create_synthetic_leaf_dataset",
+    "create_stratified_splits",
+    "PLANTVILLAGE_CLASSES",
     "LEAF_DISEASE_CLASSES",
     "NORMALIZE_MEAN",
     "NORMALIZE_STD",
+    "DEFAULT_DATA_DIR",
 ]

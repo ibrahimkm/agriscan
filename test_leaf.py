@@ -4,10 +4,10 @@ from torchvision import transforms
 from ml.model import get_model
 
 # Load checkpoint
-c = torch.load(
-    "ml/checkpoints/best_leaf_model.pth",
-    map_location="cpu"
-)
+try:
+    c = torch.load("ml/checkpoints/best_leaf_model.pth", map_location="cpu", weights_only=False)
+except TypeError:
+    c = torch.load("ml/checkpoints/best_leaf_model.pth", map_location="cpu")
 
 classes = c["classes"]
 

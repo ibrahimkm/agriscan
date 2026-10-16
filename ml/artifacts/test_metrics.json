@@ -1,0 +1,26 @@
+{
+  "model_variant": "efficientnet_b0",
+  "checkpoint": "/Users/ibrahim.k.m/MLOPS_final_project/ml/checkpoints/best_leaf_model.pth",
+  "total_test_samples": 8179,
+  "num_classes": 38,
+  "test_accuracy": 96.64,
+  "macro_precision": 95.29,
+  "macro_recall": 96.47,
+  "macro_f1": 95.62,
+  "report_summary": {
+    "accuracy": 0.9663773077393324,
+    "macro avg": {
+      "precision": 0.952862716981199,
+      "recall": 0.9647397971766628,
+      "f1-score": 0.9562136839877793,
+      "support": 8179.0
+    },
+    "weighted avg": {
+      "precision": 0.969610714862299,
+      "recall": 0.9663773077393324,
+      "f1-score": 0.9664876561970487,
+      "support": 8179.0
+    }
+  },
+  "note": "PlantVillage images feature clean, controlled laboratory backgrounds. Real field conditions may show domain shift."
+}
