@@ -7,8 +7,6 @@ import {
   CheckCircle2,
   ChevronRight,
   TrendingUp,
-  AlertCircle,
-  Scan,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useConnectivity } from '../context/ConnectivityContext';
@@ -29,7 +27,7 @@ export const HomePage = () => {
   });
   const [crops, setCrops] = useState([]);
   const [recentDiagnosis, setRecentDiagnosis] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -97,13 +95,13 @@ export const HomePage = () => {
   const firstName = user?.name ? user.name.split(' ')[0] : 'Ravi';
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-24 md:pb-8 select-none">
+    <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">
       <AppHeader />
       <OfflineBanner />
 
-      <main className="max-w-2xl mx-auto p-4 space-y-4">
+      <main className="max-w-2xl mx-auto p-3.5 sm:p-4 space-y-3.5 sm:space-y-4">
         {/* Top Greeting Card (Matching Stitch Screen 2) */}
-        <div className="bg-white border border-[#EAE5DE] rounded-3xl p-5 shadow-xs space-y-2">
+        <div className="bg-white border border-[#EAE5DE] rounded-3xl p-4 sm:p-5 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-2xl font-bold text-[#14382B] tracking-tight">
               {t('goodMorning')}, {firstName}.
@@ -113,49 +111,49 @@ export const HomePage = () => {
               <span>{isOnline ? t('online') : t('offline')}</span>
             </div>
           </div>
-          <p className="text-sm text-[#4B5563]">
+          <p className="text-xs sm:text-sm text-[#4B5563]">
             {t('farmResilient')}
           </p>
         </div>
 
         {/* Health Summary Strip (Matching Stitch Screen 2) */}
-        <div className="bg-[#FAF8F5] border border-[#EAE5DE] rounded-2xl py-2.5 px-4 flex items-center justify-around text-xs font-medium text-[#374151] shadow-xs">
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
-            <span>{stats.summary?.healthy ?? 3} {t('healthy')}</span>
+        <div className="bg-[#FAF8F5] border border-[#EAE5DE] rounded-2xl py-2 px-2 sm:px-4 flex items-center justify-around text-[11px] sm:text-xs font-medium text-[#374151] shadow-xs">
+          <div className="flex items-center space-x-1">
+            <span className="w-2 h-2 rounded-full bg-[#22C55E] shrink-0" />
+            <span className="truncate">{stats.summary?.healthy ?? 3} {t('healthy')}</span>
           </div>
           <span className="text-[#D1D5DB]">·</span>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#EAB308]" />
-            <span>{stats.summary?.atRisk ?? 1} {t('atRisk')}</span>
+          <div className="flex items-center space-x-1">
+            <span className="w-2 h-2 rounded-full bg-[#EAB308] shrink-0" />
+            <span className="truncate">{stats.summary?.atRisk ?? 1} {t('atRisk')}</span>
           </div>
           <span className="text-[#D1D5DB]">·</span>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
-            <span>{stats.summary?.diseased ?? 0} {t('diseased')}</span>
+          <div className="flex items-center space-x-1">
+            <span className="w-2 h-2 rounded-full bg-[#EF4444] shrink-0" />
+            <span className="truncate">{stats.summary?.diseased ?? 0} {t('diseased')}</span>
           </div>
         </div>
 
         {/* Sensor Metrics Row (Temperature & Moisture) */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           {/* Temperature */}
-          <div className="bg-white border border-[#EAE5DE] rounded-2xl p-4 shadow-xs space-y-1">
-            <div className="flex items-center space-x-1.5 text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
-              <Thermometer className="w-4 h-4 text-[#C68B59]" />
-              <span>{t('temperature')}</span>
+          <div className="bg-white border border-[#EAE5DE] rounded-2xl p-3 sm:p-4 shadow-xs space-y-1">
+            <div className="flex items-center space-x-1.5 text-[10px] sm:text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
+              <Thermometer className="w-3.5 h-3.5 text-[#C68B59] shrink-0" />
+              <span className="truncate">{t('temperature')}</span>
             </div>
-            <p className="text-2xl font-bold text-[#14382B]">
+            <p className="text-xl sm:text-2xl font-bold text-[#14382B]">
               {stats.environmentalMetrics?.temperature || '24°C'}
             </p>
           </div>
 
           {/* Soil Moisture */}
-          <div className="bg-white border border-[#EAE5DE] rounded-2xl p-4 shadow-xs space-y-1">
-            <div className="flex items-center space-x-1.5 text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
-              <Droplets className="w-4 h-4 text-[#C68B59]" />
-              <span>{t('soilMoisture')}</span>
+          <div className="bg-white border border-[#EAE5DE] rounded-2xl p-3 sm:p-4 shadow-xs space-y-1">
+            <div className="flex items-center space-x-1.5 text-[10px] sm:text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
+              <Droplets className="w-3.5 h-3.5 text-[#C68B59] shrink-0" />
+              <span className="truncate">{t('soilMoisture')}</span>
             </div>
-            <p className="text-2xl font-bold text-[#14382B]">
+            <p className="text-xl sm:text-2xl font-bold text-[#14382B]">
               {t('optimal')}
             </p>
           </div>

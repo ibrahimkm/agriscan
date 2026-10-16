@@ -44,7 +44,7 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-center p-6 max-w-md mx-auto select-none">
+    <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-center px-4 py-6 sm:p-6 max-w-md mx-auto select-none">
       <div className="text-center space-y-2 mb-6">
         <div className="w-14 h-14 rounded-2xl bg-[#14382B] text-white flex items-center justify-center mx-auto shadow-md ring-4 ring-[#E8F5E9]">
           <Leaf className="w-7 h-7 stroke-[2]" />

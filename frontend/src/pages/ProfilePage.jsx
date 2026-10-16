@@ -38,47 +38,47 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-24 md:pb-8 select-none">
+    <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">
       <AppHeader title={t('profileSettings')} showBack backTo="/home" />
       <OfflineBanner />
 
-      <main className="max-w-2xl mx-auto p-4 space-y-4">
+      <main className="max-w-2xl mx-auto p-3.5 sm:p-4 space-y-3.5 sm:space-y-4">
         {/* User Card */}
-        <div className="bg-white border border-[#EAE5DE] rounded-3xl p-5 shadow-xs flex items-center space-x-4">
+        <div className="bg-white border border-[#EAE5DE] rounded-3xl p-4 sm:p-5 shadow-xs flex items-center space-x-3 sm:space-x-4">
           <img
             src={user?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
             alt={user?.name || 'Farmer'}
-            className="w-16 h-16 rounded-full object-cover border-2 border-[#D4A373] shadow-xs"
+            className="w-13 h-13 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-[#D4A373] shadow-xs shrink-0"
           />
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-[#14382B]">{user?.name || 'Ravi Sharma'}</h2>
-            <p className="text-xs text-[#6B7280]">{user?.email || 'farmer@agriscan.io'}</p>
-            <p className="text-xs text-[#C68B59] font-medium mt-0.5">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-[#14382B] truncate">{user?.name || 'Ravi Sharma'}</h2>
+            <p className="text-xs text-[#6B7280] truncate">{user?.email || 'farmer@agriscan.io'}</p>
+            <p className="text-xs text-[#C68B59] font-medium mt-0.5 truncate">
               {user?.location?.farmName || 'Surya Agro Farms'} · {user?.location?.region || 'Punjab, India'}
             </p>
           </div>
         </div>
 
         {/* Language Preferences (English, Hindi, Telugu, Tamil) */}
-        <div className="bg-white border border-[#EAE5DE] rounded-3xl p-5 shadow-xs space-y-3">
+        <div className="bg-white border border-[#EAE5DE] rounded-3xl p-4 sm:p-5 shadow-xs space-y-3">
           <div className="flex items-center space-x-2 text-[#14382B]">
-            <Globe className="w-5 h-5 text-[#2D6A4F]" />
+            <Globe className="w-5 h-5 text-[#2D6A4F] shrink-0" />
             <h3 className="text-sm font-bold">{t('languageDialect')}</h3>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 pt-1">
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5 pt-1">
             {availableLanguages.map((item) => (
               <button
                 key={item.code}
                 onClick={() => handleLanguageChange(item.code)}
-                className={`p-3.5 rounded-2xl border text-xs font-semibold flex items-center justify-between transition-all ${
+                className={`p-2.5 sm:p-3.5 rounded-2xl border text-xs font-semibold flex items-center justify-between transition-all ${
                   language === item.code
                     ? 'border-[#14382B] bg-[#EDF7EE] text-[#14382B] ring-2 ring-[#14382B]/20 shadow-xs'
                     : 'border-[#EAE5DE] text-[#4B5563] hover:bg-[#FAF8F5]'
                 }`}
               >
-                <span>{item.native}</span>
-                {language === item.code && <Check className="w-4 h-4 text-[#14382B] stroke-[2.5]" />}
+                <span className="truncate">{item.native}</span>
+                {language === item.code && <Check className="w-4 h-4 text-[#14382B] stroke-[2.5] shrink-0 ml-1" />}
               </button>
             ))}
           </div>

@@ -95,18 +95,18 @@ export const YoloAnalysisPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-24 md:pb-8 select-none">
+    <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">
       <AppHeader title={t('yoloTitle')} showBack backTo="/home" />
       <OfflineBanner />
 
-      <main className="max-w-2xl mx-auto p-4 space-y-4">
+      <main className="max-w-2xl mx-auto p-3.5 sm:p-4 space-y-3.5 sm:space-y-4">
         {/* Header Title */}
         <div className="space-y-1">
           <div className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#14382B]">
             <Cpu className="w-4 h-4 text-[#2D6A4F]" />
             <span>{t('offlineInferenceBadge')}</span>
           </div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight break-words">
             {t('yoloHeader')}
           </h2>
           <p className="text-xs md:text-sm text-[#4B5563]">
@@ -115,7 +115,7 @@ export const YoloAnalysisPage = () => {
         </div>
 
         {/* Drag & Drop Upload Zone */}
-        <label className="block border-2 border-dashed border-[#D4A373] hover:border-[#14382B] rounded-3xl p-6 bg-white text-center cursor-pointer transition-all shadow-xs group">
+        <label className="block border-2 border-dashed border-[#D4A373] hover:border-[#14382B] rounded-3xl p-4 sm:p-6 bg-white text-center cursor-pointer transition-all shadow-xs group">
           <input
             type="file"
             accept="image/*"

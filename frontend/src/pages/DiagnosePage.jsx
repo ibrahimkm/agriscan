@@ -135,7 +135,10 @@ export const DiagnosePage = () => {
       </div>
 
       {/* Bottom Shutter & Action Controls (Matching Stitch Screen 3) */}
-      <div className="p-6 bg-gradient-to-t from-black via-black/90 to-transparent z-30 flex items-center justify-between max-w-md mx-auto w-full">
+      <div
+        className="px-4 py-4 sm:p-6 bg-gradient-to-t from-black via-black/90 to-transparent z-30 flex items-center justify-between max-w-md mx-auto w-full"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1.25rem)' }}
+      >
         {capturedImage ? (
           // Post-capture Action Buttons (Retake / Analyze)
           <div className="flex items-center justify-between w-full space-x-4">

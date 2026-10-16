@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   Leaf,
@@ -95,17 +95,17 @@ export const TreatmentPlanPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-24 md:pb-8 select-none">
+    <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">
       <AppHeader showBack backTo={`/diagnosis/${id}`} title="AgriScan" />
 
-      <main className="max-w-md mx-auto p-4 space-y-4">
+      <main className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3.5 sm:space-y-4">
         {/* Top Header Badge & Title (Matching Stitch Screen 7) */}
         <div className="space-y-1.5 pt-1">
           <div className="inline-flex items-center space-x-1.5 text-xs font-semibold text-[#14382B]">
             <Leaf className="w-4 h-4 text-[#2D6A4F]" />
             <span>{t('diagnosisComplete')}</span>
           </div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight break-words">
             {t('treatmentPlanTitle')}
           </h2>
           <p className="text-xs md:text-sm text-[#4B5563] leading-relaxed">

@@ -108,36 +108,44 @@ export const DiagnosisResultPage = () => {
         />
 
         {/* Crop, Disease Name & Confidence Meter (Matching Stitch Screen 6) */}
-        <div className="flex items-start justify-between pt-1">
-          <div>
-            <span className="text-[11px] font-bold text-[#6B7280] tracking-wider uppercase">
+        <div className="flex items-start justify-between gap-2 pt-1">
+          <div className="flex-1 min-w-0">
+            <span className="text-[11px] font-bold text-[#6B7280] tracking-wider uppercase block truncate">
               CROP: {translateCrop(diagnosis.cropName)?.toUpperCase() || 'TOMATO'}
             </span>
             <h2
               onClick={() => navigate(`/diagnosis/${id}/explanation`, { state: { diagnosis } })}
-              className="text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight hover:underline cursor-pointer flex items-center space-x-1.5"
+              className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight hover:underline cursor-pointer flex items-center space-x-1 break-words"
             >
               <span>{translateDisease(diagnosis.predictedDisease)}</span>
-              <ChevronRight className="w-5 h-5 text-[#C68B59] mt-1" />
+              <ChevronRight className="w-5 h-5 text-[#C68B59] shrink-0 mt-0.5" />
             </h2>
           </div>
 
-          <ConfidenceMeter confidence={diagnosis.confidence || 94} />
+          <div className="shrink-0">
+            <ConfidenceMeter confidence={diagnosis.confidence || 94} />
+          </div>
         </div>
 
         {/* Severity & Affected Area Badges (Matching Stitch Screen 6) */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <SeverityBadge severity={diagnosis.severity || 'moderate'} />
 
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#E5E7EB]/80 text-[#374151] text-xs font-semibold">
             <PieChart className="w-3.5 h-3.5 text-[#6B7280]" />
-            <span>{diagnosis.affectedPercentage || 32}% {t('affectedArea')}</span>
+            <span>
+              {diagnosis.severity === 'healthy'
+                ? '0% Affected Area'
+                : diagnosis.affectedPercentage
+                ? `${diagnosis.affectedPercentage}% ${t('affectedArea')}`
+                : 'Foliar Classification'}
+            </span>
           </div>
 
           {diagnosis.modelVersion && (
-            <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#14382B]/10 text-[#14382B] text-[11px] font-medium border border-[#14382B]/15">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-              <span>{diagnosis.modelVersion}</span>
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#14382B]/10 text-[#14382B] text-[11px] font-medium border border-[#14382B]/15 max-w-full truncate">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shrink-0" />
+              <span className="truncate">{diagnosis.modelVersion}</span>
             </div>
           )}
         </div>

@@ -31,10 +31,10 @@ export const DiseaseExplanationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-24 md:pb-8 select-none">
+    <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">
       <AppHeader showBack backTo={`/diagnosis/${id}`} title="AgriScan" />
 
-      <main className="max-w-md mx-auto p-4 space-y-4">
+      <main className="max-w-md mx-auto p-3.5 sm:p-4 space-y-3.5 sm:space-y-4">
         {/* Back Link & Heading (Matching Stitch Screen 8) */}
         <div>
           <button
@@ -44,19 +44,22 @@ export const DiseaseExplanationPage = () => {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>{t('backToScan')}</span>
           </button>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#14382B] tracking-tight break-words">
             {translateDisease(diagnosis.predictedDisease)}
           </h2>
-          <p className="text-sm italic font-serif text-[#6B7280] mt-0.5">
+          <p className="text-xs sm:text-sm italic font-serif text-[#6B7280] mt-0.5">
             {diagnosis.scientificName || 'Phytophthora infestans'}
           </p>
         </div>
 
         {/* Microscopic Pathology Card (Matching Stitch Screen 8) */}
-        <div className="relative w-full h-52 rounded-3xl overflow-hidden shadow-md border border-[#EAE5DE] bg-black">
+        <div className="relative w-full h-44 sm:h-52 rounded-3xl overflow-hidden shadow-md border border-[#EAE5DE] bg-[#14261C]">
           <img
             src="https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&auto=format&fit=crop&q=80"
             alt="Microscopic Pathogen Visual"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
             className="w-full h-full object-cover opacity-90"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />

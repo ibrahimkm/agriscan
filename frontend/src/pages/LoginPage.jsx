@@ -48,7 +48,7 @@ export const LoginPage = () => {
       </div>
 
       {/* Clean Custom Login Form (Account suggestions removed) */}
-      <form onSubmit={handleSubmit} className="bg-white border border-[#EAE5DE] rounded-3xl p-6 shadow-xs space-y-4">
+      <form onSubmit={handleSubmit} className="bg-white border border-[#EAE5DE] rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
         {error && (
           <div className="p-3 rounded-xl bg-[#FEE2E2] text-[#B91C1C] text-xs font-semibold">
             {error}

@@ -8,8 +8,6 @@ import {
   RefreshCw,
   User,
   X,
-  CheckCircle2,
-  Database,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -41,12 +39,12 @@ export const AppHeader = ({ title = 'AgriScan', showBack = false, onBack, rightA
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#EAE5DE] px-4 py-3 flex items-center justify-between select-none">
-        <div className="flex items-center space-x-3">
+      <header className="sticky top-0 z-40 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-[#EAE5DE] px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between select-none">
+        <div className="flex items-center space-x-2 z-10">
           {showBack ? (
             <button
               onClick={handleBack}
-              className="p-1.5 -ml-1 text-[#14382B] hover:bg-[#EAE5DE]/60 rounded-full transition-colors"
+              className="p-1.5 -ml-1 text-[#14382B] hover:bg-[#EAE5DE]/60 rounded-full transition-colors flex items-center"
               aria-label="Go Back"
             >
               <ArrowLeft className="w-5 h-5 stroke-[2.2]" />
@@ -54,24 +52,19 @@ export const AppHeader = ({ title = 'AgriScan', showBack = false, onBack, rightA
           ) : (
             <button
               onClick={() => navigate('/profile')}
-              className="p-1.5 -ml-1 text-[#14382B] hover:bg-[#EAE5DE]/60 rounded-full transition-colors flex items-center space-x-1.5"
+              className="p-1.5 -ml-1 text-[#14382B] hover:bg-[#EAE5DE]/60 rounded-full transition-colors flex items-center"
               aria-label="Open Profile"
               title="View Farmer Profile"
             >
               <Menu className="w-6 h-6 stroke-[2]" />
             </button>
           )}
-          {showBack && title !== 'AgriScan' && (
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">
-              {title}
-            </span>
-          )}
         </div>
 
-        <div className="absolute left-1/2 -translate-x-1/2">
+        <div className="absolute left-1/2 -translate-x-1/2 max-w-[55%] truncate text-center">
           <button
             onClick={() => navigate('/home')}
-            className="text-lg md:text-xl font-bold tracking-tight text-[#14382B] font-sans hover:opacity-80 transition-opacity"
+            className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-[#14382B] font-sans hover:opacity-80 transition-opacity truncate max-w-full block"
           >
             {title === 'AgriScan' || !showBack ? 'AgriScan' : title}
           </button>

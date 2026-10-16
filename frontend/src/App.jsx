@@ -33,7 +33,7 @@ const AppLayout = ({ children }) => {
       <Sidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
         {children}
         {/* Mobile Bottom Navigation Bar */}
         <BottomNavigation />

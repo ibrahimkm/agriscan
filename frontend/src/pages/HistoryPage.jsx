@@ -114,15 +114,15 @@ export const HistoryPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] pb-24 md:pb-8 select-none">
+    <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">
       <AppHeader title={t('diagnosisHistory')} showBack backTo="/home" />
       <OfflineBanner />
 
-      <main className="max-w-2xl mx-auto p-4 space-y-4">
+      <main className="max-w-2xl mx-auto p-3.5 sm:p-4 space-y-3.5 sm:space-y-4">
         {/* Title & Description */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-extrabold text-[#14382B] tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-[#14382B] tracking-tight">
               {t('diagnosisHistory')}
             </h2>
             <p className="text-xs md:text-sm text-[#4B5563]">
@@ -140,7 +140,7 @@ export const HistoryPage = () => {
         </div>
 
         {/* Timeline Cards List */}
-        <div className="space-y-3 pt-2">
+        <div className="space-y-2.5 sm:space-y-3 pt-1">
           {filteredDiagnoses.map((diag, index) => {
             const isSynced = diag.syncStatus === 'synced' || !!diag._id;
 
@@ -152,10 +152,10 @@ export const HistoryPage = () => {
                     state: { diagnosis: diag },
                   })
                 }
-                className="bg-white border border-[#EAE5DE] hover:border-[#14382B]/30 rounded-3xl p-4 shadow-xs hover:shadow-md cursor-pointer transition-all flex items-center space-x-3.5 group"
+                className="bg-white border border-[#EAE5DE] hover:border-[#14382B]/30 rounded-3xl p-3 sm:p-4 shadow-xs hover:shadow-md cursor-pointer transition-all flex items-center space-x-3 sm:space-x-3.5 group"
               >
                 {/* Crop Leaf Thumbnail */}
-                <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] shrink-0">
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] shrink-0">
                   <img
                     src={
                       diag.imageUrl ||

@@ -16,8 +16,11 @@ export const BottomNavigation = () => {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-[#EAE5DE] px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.03)] select-none">
-      <div className="max-w-md mx-auto flex items-center justify-around">
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-[#EAE5DE] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] select-none transition-all"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)' }}
+    >
+      <div className="w-full max-w-md mx-auto px-1 grid grid-cols-5 items-end justify-items-center">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -30,20 +33,20 @@ export const BottomNavigation = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className="flex flex-col items-center group -mt-5"
+                className="w-full col-span-1 flex flex-col items-center justify-center -mt-4 pb-1 group"
               >
                 <div
-                  className={`w-14 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-200 ${
+                  className={`w-12 h-11 sm:w-13 sm:h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform duration-150 active:scale-95 ${
                     isActive
                       ? 'bg-[#14382B] text-white ring-4 ring-[#E8F5E9]'
                       : 'bg-[#1B4332] text-white hover:bg-[#14382B]'
                   }`}
                 >
-                  <Icon className="w-6 h-6 stroke-[2]" />
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2]" />
                 </div>
                 <span
-                  className={`text-[10px] font-semibold mt-1 transition-colors ${
-                    isActive ? 'text-[#14382B]' : 'text-[#6B7280]'
+                  className={`text-[10px] leading-tight font-semibold mt-1 truncate max-w-full px-0.5 text-center transition-colors ${
+                    isActive ? 'text-[#14382B] font-bold' : 'text-[#6B7280]'
                   }`}
                 >
                   {item.name}
@@ -56,20 +59,24 @@ export const BottomNavigation = () => {
             <NavLink
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center py-1 px-2 rounded-xl transition-all duration-150 ${
+              className={`w-full col-span-1 flex flex-col items-center justify-center py-1 px-0.5 transition-all duration-150 ${
                 isActive
                   ? 'text-[#14382B]'
                   : 'text-[#6B7280] hover:text-[#1B4332]'
               }`}
             >
               <div
-                className={`p-1 rounded-xl transition-all ${
-                  isActive ? 'bg-[#14382B] text-white shadow-sm' : 'text-[#4B5563]'
+                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                  isActive ? 'bg-[#14382B] text-white shadow-xs' : 'text-[#4B5563]'
                 }`}
               >
-                <Icon className="w-5 h-5 stroke-[2]" />
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
               </div>
-              <span className={`text-[10px] font-medium mt-0.5 truncate max-w-[64px] text-center ${isActive ? 'font-bold text-[#14382B]' : ''}`}>
+              <span
+                className={`text-[10px] leading-tight font-medium mt-1 truncate max-w-full px-0.5 text-center transition-colors ${
+                  isActive ? 'font-bold text-[#14382B]' : ''
+                }`}
+              >
                 {item.name}
               </span>
             </NavLink>
