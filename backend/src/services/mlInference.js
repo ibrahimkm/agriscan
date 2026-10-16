@@ -79,6 +79,7 @@ class MLInferenceService {
   async preprocessImageBuffer(buffer) {
     const targetSize = 224;
     const { data } = await sharp(buffer)
+      .rotate() // Auto-orient using EXIF orientation metadata
       .resize(targetSize, targetSize, { fit: 'fill' })
       .removeAlpha()
       .raw()
@@ -102,11 +103,14 @@ class MLInferenceService {
   }
 
   /**
-   * Extract image buffer from varied inputs (local upload path, data URL, http url, base64)
+   * Extract image buffer from varied inputs (local upload path, data URL, http url, base64, buffer)
    */
-  async resolveImageBuffer({ imageUrl, base64Image, imageBuffer }) {
+  async resolveImageBuffer({ imageUrl, base64Image, imageBuffer, filePath }) {
     if (imageBuffer && Buffer.isBuffer(imageBuffer)) {
       return imageBuffer;
+    }
+    if (filePath && fs.existsSync(filePath)) {
+      return fs.promises.readFile(filePath);
     }
     if (base64Image) {
       const match = base64Image.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
@@ -126,7 +130,7 @@ class MLInferenceService {
 
     // Check if it is a local upload path
     if (imageUrl.includes('/uploads/')) {
-      const filename = path.basename(imageUrl);
+      const filename = path.basename(imageUrl.split('?')[0]);
       const localPath = path.join(__dirname, '../../uploads', filename);
       if (fs.existsSync(localPath)) {
         return fs.promises.readFile(localPath);
@@ -152,11 +156,11 @@ class MLInferenceService {
   /**
    * Run real EfficientNet neural network diagnosis on leaf image
    */
-  async runDiseaseDiagnosis({ cropName = 'Tomato', imageUrl, base64Image, imageBuffer, fieldBlock = 'Block A' }) {
+  async runDiseaseDiagnosis({ cropName, imageUrl, base64Image, imageBuffer, filePath, fieldBlock = 'Block A' }) {
     await this.ensureReady();
 
     // 1. Resolve image buffer
-    const imgBuffer = await this.resolveImageBuffer({ imageUrl, base64Image, imageBuffer });
+    const imgBuffer = await this.resolveImageBuffer({ imageUrl, base64Image, imageBuffer, filePath });
 
     // 2. Preprocess to exact ImageNet tensor
     const tensor = await this.preprocessImageBuffer(imgBuffer);
@@ -199,10 +203,11 @@ class MLInferenceService {
     }).catch(() => null);
 
     const enDesc = classMeta.descriptions?.en;
+    const predictedCrop = classMeta.crop || cropName || 'General Crop';
     const whatIsIt =
       dbDisease?.description ||
       enDesc?.whatIsIt ||
-      `${predictedDiseaseName} identified on ${classMeta.crop || cropName} foliage.`;
+      `${predictedDiseaseName} identified on ${predictedCrop} foliage.`;
 
     const symptoms = dbDisease?.symptoms?.summary || enDesc?.symptoms || [
       `Foliar symptoms characteristic of ${predictedDiseaseName}`,
@@ -240,7 +245,7 @@ class MLInferenceService {
       'Always observe label safety recommendations and pre-harvest intervals for any treatment application.';
 
     return {
-      cropName: classMeta.crop || cropName,
+      cropName: predictedCrop,
       cropVariety: 'Standard Field Variety',
       fieldBlock,
       imageUrl: imageUrl || '',

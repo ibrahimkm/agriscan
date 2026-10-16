@@ -1,3 +1,4 @@
+import fs from 'fs';
 import mongoose from 'mongoose';
 import Diagnosis from '../models/Diagnosis.js';
 import Crop from '../models/Crop.js';
@@ -7,20 +8,28 @@ import { getImageUrl, saveBase64Image } from '../services/imageStorage.js';
 export const createDiagnosis = async (req, res, next) => {
   try {
     let imageUrl = '';
-    const { cropName = 'Tomato', cropId, fieldBlock = 'Block A', base64Image, clientOfflineId } = req.body;
+    const { cropName, cropId, fieldBlock = 'Block A', base64Image, clientOfflineId } = req.body;
 
     let imageBuffer = null;
+    let filePath = null;
+
     if (req.file) {
       imageUrl = getImageUrl(req, req.file.filename);
+      filePath = req.file.path;
       if (req.file.buffer) {
         imageBuffer = req.file.buffer;
+      } else if (filePath && fs.existsSync(filePath)) {
+        imageBuffer = await fs.promises.readFile(filePath);
       }
     } else if (base64Image) {
       imageUrl = saveBase64Image(base64Image, 'scan');
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl;
     } else {
-      imageUrl = 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80';
+      return res.status(400).json({
+        success: false,
+        message: 'No image provided for diagnosis. Please upload an image file or provide an image buffer.',
+      });
     }
 
     // Run ML inference with real EfficientNet ONNX model
@@ -28,16 +37,18 @@ export const createDiagnosis = async (req, res, next) => {
       cropName,
       imageUrl,
       imageBuffer,
+      filePath,
       base64Image,
       fieldBlock,
     });
 
     // Check crop reference
     let cropDoc = null;
+    const resolvedCropName = inferenceResult.cropName || cropName;
     if (cropId && mongoose.Types.ObjectId.isValid(cropId)) {
       cropDoc = await Crop.findOne({ _id: cropId, userId: req.user.id });
-    } else {
-      cropDoc = await Crop.findOne({ cropName: { $regex: cropName, $options: 'i' }, userId: req.user.id });
+    } else if (resolvedCropName) {
+      cropDoc = await Crop.findOne({ cropName: { $regex: resolvedCropName, $options: 'i' }, userId: req.user.id });
     }
 
     // Create diagnosis record
