@@ -3,7 +3,7 @@ import sys
 import json
 import hashlib
 from pathlib import Path
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Union, Callable
 from collections import defaultdict
 
 import torch
@@ -111,7 +111,7 @@ class PlantLeafDataset(Dataset):
         self,
         root_dir: str = DEFAULT_DATA_DIR,
         class_list: Optional[List[str]] = None,
-        transform=None,
+        transform: Optional[Callable] = None,
         max_samples_per_class: Optional[int] = None,
         seed: int = 42,
     ):
@@ -180,7 +180,7 @@ class PlantLeafDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, index: int) -> Tuple[Union[torch.Tensor, Image.Image], int]:
         path, label = self.samples[index]
         try:
             image = Image.open(path).convert("RGB")
@@ -222,7 +222,7 @@ class PlantLeafDataset(Dataset):
 
 class DatasetFromSamples(Dataset):
     """Dataset wrapper for pre-selected image samples."""
-    def __init__(self, samples: List[Tuple[str, int]], classes: List[str], transform=None):
+    def __init__(self, samples: List[Tuple[str, int]], classes: List[str], transform: Optional[Callable] = None):
         self.samples = samples
         self.classes = classes
         self.transform = transform
@@ -230,7 +230,7 @@ class DatasetFromSamples(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+    def __getitem__(self, index: int) -> Tuple[Union[torch.Tensor, Image.Image], int]:
         path, label = self.samples[index]
         try:
             image = Image.open(path).convert("RGB")
@@ -248,9 +248,9 @@ def create_stratified_splits(
     val_ratio: float = 0.15,
     test_ratio: float = 0.15,
     seed: int = 42,
-    train_transform=None,
-    val_test_transform=None,
-) -> Tuple[Dataset, Dataset, Dataset]:
+    train_transform: Optional[Callable] = None,
+    val_test_transform: Optional[Callable] = None,
+) -> Tuple[DatasetFromSamples, DatasetFromSamples, DatasetFromSamples]:
     """
     Creates stratified, leakage-free train, validation, and test splits.
     Guarantees every class is proportionally represented in all 3 splits.

@@ -1,0 +1,938 @@
+{
+  "timestamp": "2026-10-16 23:02:32",
+  "status": "passed",
+  "checks": {
+    "artifacts_exist": true,
+    "backend_frontend_onnx_match": true,
+    "onnx_md5": "988480f29361de50de72489c816f4257",
+    "class_mapping_parity": true,
+    "class_count": 38,
+    "onnx_session_init": true,
+    "input_tensor": {
+      "name": "input_image",
+      "shape": "['batch_size', 3, 224, 224]"
+    },
+    "output_tensor": {
+      "name": "class_probabilities",
+      "shape": "['batch_size', 38]"
+    }
+  },
+  "per_class_evaluation": [
+    {
+      "file": "48dcb319-8b65-4bac-bba4-aa8ffa8abdd0___FREC_Scab 3519.JPG",
+      "ground_truth": "Apple___Apple_scab",
+      "predicted": "Apple___Apple_scab",
+      "confidence": 88.42,
+      "correct": true,
+      "pt_onnx_diff": 4.172325134277344e-07
+    },
+    {
+      "file": "67f122a8-fb8f-4b8c-bd45-3cf11db238b8___FREC_Scab 3140.JPG",
+      "ground_truth": "Apple___Apple_scab",
+      "predicted": "Apple___Apple_scab",
+      "confidence": 97.48,
+      "correct": true,
+      "pt_onnx_diff": 2.0489096641540527e-08
+    },
+    {
+      "file": "0c620ec5-11cf-4120-94ab-1311e99df147___FREC_Scab 3131.JPG",
+      "ground_truth": "Apple___Apple_scab",
+      "predicted": "Apple___Apple_scab",
+      "confidence": 97.62,
+      "correct": true,
+      "pt_onnx_diff": 4.377216100692749e-08
+    },
+    {
+      "file": "24420d48-c47b-4e67-959a-bf28131abbdc___JR_FrgE.S 2811.JPG",
+      "ground_truth": "Apple___Black_rot",
+      "predicted": "Apple___Black_rot",
+      "confidence": 97.32,
+      "correct": true,
+      "pt_onnx_diff": 5.960464477539062e-07
+    },
+    {
+      "file": "f54d34aa-d0a9-40c4-8277-6c65ef9a3203___JR_FrgE.S 2827.JPG",
+      "ground_truth": "Apple___Black_rot",
+      "predicted": "Apple___Black_rot",
+      "confidence": 92.34,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "988c58b8-9323-4b0f-86de-c4fe396f09b8___JR_FrgE.S 8648.JPG",
+      "ground_truth": "Apple___Black_rot",
+      "predicted": "Apple___Black_rot",
+      "confidence": 99.66,
+      "correct": true,
+      "pt_onnx_diff": 1.3387762010097504e-09
+    },
+    {
+      "file": "18ba5927-bf67-47ff-bdcf-11056e368b60___FREC_C.Rust 4258.JPG",
+      "ground_truth": "Apple___Cedar_apple_rust",
+      "predicted": "Apple___Cedar_apple_rust",
+      "confidence": 99.34,
+      "correct": true,
+      "pt_onnx_diff": 1.0244548320770264e-08
+    },
+    {
+      "file": "90bff1e0-f71d-4963-93cb-8a9a16f49e74___FREC_C.Rust 9939.JPG",
+      "ground_truth": "Apple___Cedar_apple_rust",
+      "predicted": "Apple___Cedar_apple_rust",
+      "confidence": 99.54,
+      "correct": true,
+      "pt_onnx_diff": 1.7462298274040222e-09
+    },
+    {
+      "file": "8fd46690-5e57-47f6-8d99-235d4738411f___FREC_C.Rust 0074.JPG",
+      "ground_truth": "Apple___Cedar_apple_rust",
+      "predicted": "Apple___Cedar_apple_rust",
+      "confidence": 99.77,
+      "correct": true,
+      "pt_onnx_diff": 1.5133991837501526e-09
+    },
+    {
+      "file": "f864bef8-0fb1-43e1-866f-a1e78336be9f___RS_HL 7521.JPG",
+      "ground_truth": "Apple___healthy",
+      "predicted": "Apple___healthy",
+      "confidence": 99.57,
+      "correct": true,
+      "pt_onnx_diff": 1.257285475730896e-08
+    },
+    {
+      "file": "ada1699c-0a91-44ea-bc2b-476147394421___RS_HL 5646.JPG",
+      "ground_truth": "Apple___healthy",
+      "predicted": "Apple___healthy",
+      "confidence": 98.22,
+      "correct": true,
+      "pt_onnx_diff": 2.561137080192566e-08
+    },
+    {
+      "file": "456779f4-b7a7-4980-94ee-1798491ca888___RS_HL 7415.JPG",
+      "ground_truth": "Apple___healthy",
+      "predicted": "Apple___healthy",
+      "confidence": 98.2,
+      "correct": true,
+      "pt_onnx_diff": 3.306195139884949e-08
+    },
+    {
+      "file": "7794adea-b4b5-4cc4-80f8-5f20caab70d0___RS_HL 0650.JPG",
+      "ground_truth": "Blueberry___healthy",
+      "predicted": "Blueberry___healthy",
+      "confidence": 99.45,
+      "correct": true,
+      "pt_onnx_diff": 1.3737007975578308e-08
+    },
+    {
+      "file": "bf579ab6-4a06-418a-bf41-a12ec4ebfe49___RS_HL 2321.JPG",
+      "ground_truth": "Blueberry___healthy",
+      "predicted": "Blueberry___healthy",
+      "confidence": 98.18,
+      "correct": true,
+      "pt_onnx_diff": 1.1408701539039612e-08
+    },
+    {
+      "file": "b15f23b2-4fd8-483b-92f3-0f79dab0c674___RS_HL 2305.JPG",
+      "ground_truth": "Blueberry___healthy",
+      "predicted": "Blueberry___healthy",
+      "confidence": 89.37,
+      "correct": true,
+      "pt_onnx_diff": 2.2724270820617676e-07
+    },
+    {
+      "file": "decee4a0-018b-47bf-abf6-75bdfb5bc67d___FREC_Pwd.M 4700.JPG",
+      "ground_truth": "Cherry_(including_sour)___Powdery_mildew",
+      "predicted": "Cherry_(including_sour)___Powdery_mildew",
+      "confidence": 99.78,
+      "correct": true,
+      "pt_onnx_diff": 1.3096723705530167e-09
+    },
+    {
+      "file": "d900ece6-df13-478f-a07a-be31c56e64d5___FREC_Pwd.M 0290.JPG",
+      "ground_truth": "Cherry_(including_sour)___Powdery_mildew",
+      "predicted": "Cherry_(including_sour)___Powdery_mildew",
+      "confidence": 96.8,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "6f54b2ab-ab60-49a6-a203-bc273bbfc17e___FREC_Pwd.M 4733.JPG",
+      "ground_truth": "Cherry_(including_sour)___Powdery_mildew",
+      "predicted": "Cherry_(including_sour)___Powdery_mildew",
+      "confidence": 99.61,
+      "correct": true,
+      "pt_onnx_diff": 1.9208528101444244e-08
+    },
+    {
+      "file": "271c42ee-ce8e-4cd6-90bf-095d7dcd7b18___JR_HL 4028.JPG",
+      "ground_truth": "Cherry_(including_sour)___healthy",
+      "predicted": "Cherry_(including_sour)___healthy",
+      "confidence": 99.78,
+      "correct": true,
+      "pt_onnx_diff": 1.257285475730896e-08
+    },
+    {
+      "file": "35457722-0a92-4019-906e-5f7933f326d7___JR_HL 4056.JPG",
+      "ground_truth": "Cherry_(including_sour)___healthy",
+      "predicted": "Cherry_(including_sour)___healthy",
+      "confidence": 99.04,
+      "correct": true,
+      "pt_onnx_diff": 2.3283064365386963e-09
+    },
+    {
+      "file": "871dddc4-1a16-4ad6-9990-301fed42974f___JR_HL 4223.JPG",
+      "ground_truth": "Cherry_(including_sour)___healthy",
+      "predicted": "Cherry_(including_sour)___healthy",
+      "confidence": 99.51,
+      "correct": true,
+      "pt_onnx_diff": 3.4924596548080444e-09
+    },
+    {
+      "file": "0f08ab4f-caf6-4e50-a399-000e4e9841a0___RS_GLSp 4623.JPG",
+      "ground_truth": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "predicted": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "confidence": 94.75,
+      "correct": true,
+      "pt_onnx_diff": 4.284083843231201e-08
+    },
+    {
+      "file": "ae535bc2-e24f-437e-ba3c-661fb05c0173___RS_GLSp 4461.JPG",
+      "ground_truth": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "predicted": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "confidence": 86.06,
+      "correct": true,
+      "pt_onnx_diff": 2.980232238769531e-07
+    },
+    {
+      "file": "950e2b3f-a007-48c5-bb85-8c68336a7e76___RS_GLSp 4453.JPG",
+      "ground_truth": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "predicted": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "confidence": 78.67,
+      "correct": true,
+      "pt_onnx_diff": 7.003545761108398e-07
+    },
+    {
+      "file": "RS_Rust 2583.JPG",
+      "ground_truth": "Corn_(maize)___Common_rust_",
+      "predicted": "Corn_(maize)___Common_rust_",
+      "confidence": 99.66,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "RS_Rust 2260.JPG",
+      "ground_truth": "Corn_(maize)___Common_rust_",
+      "predicted": "Corn_(maize)___Common_rust_",
+      "confidence": 98.98,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "RS_Rust 1605.JPG",
+      "ground_truth": "Corn_(maize)___Common_rust_",
+      "predicted": "Corn_(maize)___Common_rust_",
+      "confidence": 98.94,
+      "correct": true,
+      "pt_onnx_diff": 4.842877388000488e-08
+    },
+    {
+      "file": "ce1bbcb3-e17b-4b81-bf54-9c5d14d3faee___RS_NLB 4248.JPG",
+      "ground_truth": "Corn_(maize)___Northern_Leaf_Blight",
+      "predicted": "Corn_(maize)___Northern_Leaf_Blight",
+      "confidence": 70.29,
+      "correct": true,
+      "pt_onnx_diff": 8.940696716308594e-07
+    },
+    {
+      "file": "788e0b65-df14-4960-b819-dda874f15c03___RS_NLB 3993.JPG",
+      "ground_truth": "Corn_(maize)___Northern_Leaf_Blight",
+      "predicted": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "confidence": 90.9,
+      "correct": false,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "ae72095b-62bd-4930-b83c-ef4d8264f437___RS_NLB 3895.JPG",
+      "ground_truth": "Corn_(maize)___Northern_Leaf_Blight",
+      "predicted": "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+      "confidence": 87.32,
+      "correct": false,
+      "pt_onnx_diff": 5.960464477539063e-08
+    },
+    {
+      "file": "0ad1f85a-765f-43e5-8b7b-4a7521be768d___R.S_HL 5520 copy 2.jpg",
+      "ground_truth": "Corn_(maize)___healthy",
+      "predicted": "Corn_(maize)___healthy",
+      "confidence": 99.79,
+      "correct": true,
+      "pt_onnx_diff": 1.1059455573558807e-09
+    },
+    {
+      "file": "55558508-0071-4e16-89ca-5e42716988e9___R.S_HL 8170 copy 2.jpg",
+      "ground_truth": "Corn_(maize)___healthy",
+      "predicted": "Corn_(maize)___healthy",
+      "confidence": 98.06,
+      "correct": true,
+      "pt_onnx_diff": 2.0954757928848267e-08
+    },
+    {
+      "file": "28ca7e31-0f73-4546-b234-98dcaa581d67___R.S_HL 7920 copy.jpg",
+      "ground_truth": "Corn_(maize)___healthy",
+      "predicted": "Corn_(maize)___healthy",
+      "confidence": 99.34,
+      "correct": true,
+      "pt_onnx_diff": 3.259629011154175e-09
+    },
+    {
+      "file": "4c2cf28e-6bec-4105-bdaf-b36fb046ab3e___FAM_B.Rot 3024.JPG",
+      "ground_truth": "Grape___Black_rot",
+      "predicted": "Grape___Black_rot",
+      "confidence": 91.48,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "bca43508-6643-40ec-bf51-01c1a5de3e56___FAM_B.Rot 3608.JPG",
+      "ground_truth": "Grape___Black_rot",
+      "predicted": "Grape___Black_rot",
+      "confidence": 99.44,
+      "correct": true,
+      "pt_onnx_diff": 1.1641532182693481e-08
+    },
+    {
+      "file": "92a65dc4-5eb4-4c43-b6fa-ef20d29b8791___FAM_B.Rot 3369.JPG",
+      "ground_truth": "Grape___Black_rot",
+      "predicted": "Grape___Black_rot",
+      "confidence": 98.61,
+      "correct": true,
+      "pt_onnx_diff": 4.423782229423523e-09
+    },
+    {
+      "file": "37642d48-d6b8-49b6-9190-d0a12bea3f6c___FAM_B.Msls 0851.JPG",
+      "ground_truth": "Grape___Esca_(Black_Measles)",
+      "predicted": "Grape___Esca_(Black_Measles)",
+      "confidence": 93.84,
+      "correct": true,
+      "pt_onnx_diff": 1.7881393432617188e-07
+    },
+    {
+      "file": "f1f2742f-8047-41b1-b852-55ccae76e034___FAM_B.Msls 4373.JPG",
+      "ground_truth": "Grape___Esca_(Black_Measles)",
+      "predicted": "Grape___Esca_(Black_Measles)",
+      "confidence": 97.36,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "48ea4e89-4cf7-462e-b135-db94938570e4___FAM_B.Msls 4090.JPG",
+      "ground_truth": "Grape___Esca_(Black_Measles)",
+      "predicted": "Grape___Esca_(Black_Measles)",
+      "confidence": 99.42,
+      "correct": true,
+      "pt_onnx_diff": 1.2223608791828156e-08
+    },
+    {
+      "file": "f2b27716-3d46-41b3-9937-c0fd76b93be2___FAM_L.Blight 4556.JPG",
+      "ground_truth": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "predicted": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "confidence": 99.17,
+      "correct": true,
+      "pt_onnx_diff": 3.14321368932724e-09
+    },
+    {
+      "file": "2b3130c1-4245-4b5e-95ed-4d9b652cc86d___FAM_L.Blight 1727.JPG",
+      "ground_truth": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "predicted": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "confidence": 94.61,
+      "correct": true,
+      "pt_onnx_diff": 2.980232238769531e-07
+    },
+    {
+      "file": "2a4424de-736a-49a4-b501-21a86363f8f1___FAM_L.Blight 4887.JPG",
+      "ground_truth": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "predicted": "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+      "confidence": 97.95,
+      "correct": true,
+      "pt_onnx_diff": 1.1408701539039612e-08
+    },
+    {
+      "file": "caf1a7e7-8f7b-4127-929c-7d9c29c31d56___Mt.N.V_HL 8969.JPG",
+      "ground_truth": "Grape___healthy",
+      "predicted": "Grape___healthy",
+      "confidence": 97.61,
+      "correct": true,
+      "pt_onnx_diff": 1.3969838619232178e-08
+    },
+    {
+      "file": "63a683df-44e9-410f-b04c-c07220e3b9a3___Mt.N.V_HL 9089.JPG",
+      "ground_truth": "Grape___healthy",
+      "predicted": "Grape___healthy",
+      "confidence": 99.83,
+      "correct": true,
+      "pt_onnx_diff": 2.9103830456733704e-09
+    },
+    {
+      "file": "cad08b01-b03c-4bee-a786-a6118ec09c37___Mt.N.V_HL 6081.JPG",
+      "ground_truth": "Grape___healthy",
+      "predicted": "Grape___healthy",
+      "confidence": 96.39,
+      "correct": true,
+      "pt_onnx_diff": 2.3515895009040833e-08
+    },
+    {
+      "file": "9ba3d1a5-cf7e-4979-a98c-d6ac98cde17c___UF.Citrus_HLB_Lab 0621.JPG",
+      "ground_truth": "Orange___Haunglongbing_(Citrus_greening)",
+      "predicted": "Orange___Haunglongbing_(Citrus_greening)",
+      "confidence": 99.55,
+      "correct": true,
+      "pt_onnx_diff": 4.6566128730773926e-09
+    },
+    {
+      "file": "9c60d2f1-07a9-4904-bf77-7356ebb3377b___UF.Citrus_HLB_Lab 1561.JPG",
+      "ground_truth": "Orange___Haunglongbing_(Citrus_greening)",
+      "predicted": "Orange___Haunglongbing_(Citrus_greening)",
+      "confidence": 99.46,
+      "correct": true,
+      "pt_onnx_diff": 7.916241884231567e-09
+    },
+    {
+      "file": "45ffe7da-33b4-4834-8699-753909ab0446___CREC_HLB 7654.JPG",
+      "ground_truth": "Orange___Haunglongbing_(Citrus_greening)",
+      "predicted": "Orange___Haunglongbing_(Citrus_greening)",
+      "confidence": 99.6,
+      "correct": true,
+      "pt_onnx_diff": 1.2223608791828156e-09
+    },
+    {
+      "file": "e1d54ad8-2b13-47fd-97da-1711decc24c4___Rut._Bact.S 1379.JPG",
+      "ground_truth": "Peach___Bacterial_spot",
+      "predicted": "Peach___Bacterial_spot",
+      "confidence": 99.67,
+      "correct": true,
+      "pt_onnx_diff": 3.6088749766349792e-09
+    },
+    {
+      "file": "bdb5b6fd-1372-45d6-b7cc-299459c4c338___Rut._Bact.S 0773.JPG",
+      "ground_truth": "Peach___Bacterial_spot",
+      "predicted": "Peach___Bacterial_spot",
+      "confidence": 99.13,
+      "correct": true,
+      "pt_onnx_diff": 4.6566128730773926e-09
+    },
+    {
+      "file": "0295d4b3-f225-486f-9d6f-403f299a6c9e___Rut._Bact.S 0883.JPG",
+      "ground_truth": "Peach___Bacterial_spot",
+      "predicted": "Peach___Bacterial_spot",
+      "confidence": 90.77,
+      "correct": true,
+      "pt_onnx_diff": 8.381903171539307e-08
+    },
+    {
+      "file": "1a07ce54-f4fd-41cf-b088-144f6bf71859___Rutg._HL 3543.JPG",
+      "ground_truth": "Peach___healthy",
+      "predicted": "Peach___healthy",
+      "confidence": 97.9,
+      "correct": true,
+      "pt_onnx_diff": 7.450580596923828e-09
+    },
+    {
+      "file": "889676f3-e37b-4b86-a440-c087611e5cd5___Rutg._HL 2432.JPG",
+      "ground_truth": "Peach___healthy",
+      "predicted": "Peach___healthy",
+      "confidence": 93.75,
+      "correct": true,
+      "pt_onnx_diff": 1.341104507446289e-07
+    },
+    {
+      "file": "33251245-654f-4363-bccc-8949987308b7___Rutg._HL 3552.JPG",
+      "ground_truth": "Peach___healthy",
+      "predicted": "Peach___healthy",
+      "confidence": 94.88,
+      "correct": true,
+      "pt_onnx_diff": 1.7881393432617188e-07
+    },
+    {
+      "file": "315668fd-452d-43c1-8a63-e3b4d3d634a7___JR_B.Spot 3097.JPG",
+      "ground_truth": "Pepper,_bell___Bacterial_spot",
+      "predicted": "Pepper,_bell___Bacterial_spot",
+      "confidence": 92.5,
+      "correct": true,
+      "pt_onnx_diff": 2.384185791015625e-07
+    },
+    {
+      "file": "e90ac690-4fbd-4ded-94f2-af7373479164___JR_B.Spot 8931.JPG",
+      "ground_truth": "Pepper,_bell___Bacterial_spot",
+      "predicted": "Pepper,_bell___Bacterial_spot",
+      "confidence": 99.49,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "56c2ec78-14d2-4445-be5d-77a8db483e2a___NREC_B.Spot 1803.JPG",
+      "ground_truth": "Pepper,_bell___Bacterial_spot",
+      "predicted": "Pepper,_bell___Bacterial_spot",
+      "confidence": 99.2,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "32c5b4b4-9380-4ea6-90fb-099e569c7390___JR_HL 8413.JPG",
+      "ground_truth": "Pepper,_bell___healthy",
+      "predicted": "Pepper,_bell___healthy",
+      "confidence": 99.72,
+      "correct": true,
+      "pt_onnx_diff": 6.28642737865448e-09
+    },
+    {
+      "file": "ac4bb042-f8bc-42cc-91b4-76d4287bdc25___JR_HL 8700.JPG",
+      "ground_truth": "Pepper,_bell___healthy",
+      "predicted": "Pepper,_bell___healthy",
+      "confidence": 98.82,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "960bf6d1-8b62-42d4-adad-76780adf8637___JR_HL 8022.JPG",
+      "ground_truth": "Pepper,_bell___healthy",
+      "predicted": "Pepper,_bell___healthy",
+      "confidence": 99.54,
+      "correct": true,
+      "pt_onnx_diff": 1.280568540096283e-08
+    },
+    {
+      "file": "0ad3ba53-f01b-403b-a99d-5991eed85045___RS_Early.B 7600.JPG",
+      "ground_truth": "Potato___Early_blight",
+      "predicted": "Potato___Early_blight",
+      "confidence": 93.49,
+      "correct": true,
+      "pt_onnx_diff": 1.7881393432617188e-07
+    },
+    {
+      "file": "34d7e068-10e6-4ea0-8547-c90937fccbbc___RS_Early.B 8198.JPG",
+      "ground_truth": "Potato___Early_blight",
+      "predicted": "Potato___Early_blight",
+      "confidence": 97.86,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "08bbd7f1-169d-4e38-946f-8d91589b263e___RS_Early.B 7106.JPG",
+      "ground_truth": "Potato___Early_blight",
+      "predicted": "Potato___Early_blight",
+      "confidence": 96.79,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "4d96b41e-8e2e-4a0d-b9a2-0ab8456e4074___RS_LB 3893.JPG",
+      "ground_truth": "Potato___Late_blight",
+      "predicted": "Potato___Late_blight",
+      "confidence": 99.52,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "faf67766-afc0-4f41-af0b-a3971fe325c7___RS_LB 4777.JPG",
+      "ground_truth": "Potato___Late_blight",
+      "predicted": "Potato___Late_blight",
+      "confidence": 97.8,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "bc53f0fd-df00-42c6-ad50-aef25d2c6f7a___RS_LB 2954.JPG",
+      "ground_truth": "Potato___Late_blight",
+      "predicted": "Potato___Late_blight",
+      "confidence": 98.79,
+      "correct": true,
+      "pt_onnx_diff": 3.073364496231079e-08
+    },
+    {
+      "file": "1b434c52-7be4-40c4-90d5-13220f1a3eba___RS_HL 5418.JPG",
+      "ground_truth": "Potato___healthy",
+      "predicted": "Potato___healthy",
+      "confidence": 61.78,
+      "correct": true,
+      "pt_onnx_diff": 6.854534149169922e-07
+    },
+    {
+      "file": "14484ea5-9c34-427c-abe4-2743265aced0___RS_HL 4204.JPG",
+      "ground_truth": "Potato___healthy",
+      "predicted": "Apple___healthy",
+      "confidence": 22.09,
+      "correct": false,
+      "pt_onnx_diff": 3.2782554626464844e-07
+    },
+    {
+      "file": "22322780-95b4-4b45-b626-26b22965d55e___RS_HL 1880.JPG",
+      "ground_truth": "Potato___healthy",
+      "predicted": "Potato___healthy",
+      "confidence": 96.35,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "e4c62575-44c8-4c43-b3b7-d0ad7f3020c5___Mary_HL 9249.JPG",
+      "ground_truth": "Raspberry___healthy",
+      "predicted": "Raspberry___healthy",
+      "confidence": 98.32,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "174c3316-f010-47bd-aef7-53826f8ec1dc___Mary_HL 6340.JPG",
+      "ground_truth": "Raspberry___healthy",
+      "predicted": "Raspberry___healthy",
+      "confidence": 98.25,
+      "correct": true,
+      "pt_onnx_diff": 4.0046870708465576e-08
+    },
+    {
+      "file": "23b44f6d-0a70-4587-85ac-534ca483a49e___Mary_HL 9296.JPG",
+      "ground_truth": "Raspberry___healthy",
+      "predicted": "Raspberry___healthy",
+      "confidence": 98.6,
+      "correct": true,
+      "pt_onnx_diff": 3.259629011154175e-09
+    },
+    {
+      "file": "d98e5c93-8dd4-4983-a275-b72af3551ca4___RS_HL 4976.JPG",
+      "ground_truth": "Soybean___healthy",
+      "predicted": "Soybean___healthy",
+      "confidence": 99.79,
+      "correct": true,
+      "pt_onnx_diff": 2.6775524020195007e-09
+    },
+    {
+      "file": "ec80c9b6-d37b-46d8-a4d2-b7847e5e0e8b___RS_HL 7267.JPG",
+      "ground_truth": "Soybean___healthy",
+      "predicted": "Soybean___healthy",
+      "confidence": 99.91,
+      "correct": true,
+      "pt_onnx_diff": 2.764863893389702e-09
+    },
+    {
+      "file": "60f2d7a8-73d3-4f6a-b8c0-b60da38d9dd7___RS_HL 6569.JPG",
+      "ground_truth": "Soybean___healthy",
+      "predicted": "Soybean___healthy",
+      "confidence": 99.54,
+      "correct": true,
+      "pt_onnx_diff": 1.30385160446167e-08
+    },
+    {
+      "file": "e58255b5-f214-4462-a220-24968499fb14___UMD_Powd.M 0227.JPG",
+      "ground_truth": "Squash___Powdery_mildew",
+      "predicted": "Squash___Powdery_mildew",
+      "confidence": 93.92,
+      "correct": true,
+      "pt_onnx_diff": 2.384185791015625e-07
+    },
+    {
+      "file": "69a0cc06-c82e-489f-82b3-945f85fb8355___MD_Powd.M 0035.JPG",
+      "ground_truth": "Squash___Powdery_mildew",
+      "predicted": "Squash___Powdery_mildew",
+      "confidence": 99.34,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "51208f49-d9bf-4bde-be33-4e8b02e5a753___UMD_Powd.M 0446.JPG",
+      "ground_truth": "Squash___Powdery_mildew",
+      "predicted": "Squash___Powdery_mildew",
+      "confidence": 99.84,
+      "correct": true,
+      "pt_onnx_diff": 8.731149137020111e-10
+    },
+    {
+      "file": "47e92d20-e9f4-473c-8ca2-7ee794e4439b___RS_L.Scorch 1257.JPG",
+      "ground_truth": "Strawberry___Leaf_scorch",
+      "predicted": "Strawberry___Leaf_scorch",
+      "confidence": 99.93,
+      "correct": true,
+      "pt_onnx_diff": 5.791662260890007e-09
+    },
+    {
+      "file": "608d19da-4e86-4c17-bd68-393ca0933d6b___RS_L.Scorch 0931.JPG",
+      "ground_truth": "Strawberry___Leaf_scorch",
+      "predicted": "Strawberry___Leaf_scorch",
+      "confidence": 99.86,
+      "correct": true,
+      "pt_onnx_diff": 5.413312464952469e-09
+    },
+    {
+      "file": "44c71e0e-8fc0-4f72-a073-7bed968b9e87___RS_L.Scorch 1482.JPG",
+      "ground_truth": "Strawberry___Leaf_scorch",
+      "predicted": "Strawberry___Leaf_scorch",
+      "confidence": 95.53,
+      "correct": true,
+      "pt_onnx_diff": 3.5762786865234375e-07
+    },
+    {
+      "file": "efbbf9ee-e60d-4522-9711-f92ae6e7adea___RS_HL 4586.JPG",
+      "ground_truth": "Strawberry___healthy",
+      "predicted": "Strawberry___healthy",
+      "confidence": 91.28,
+      "correct": true,
+      "pt_onnx_diff": 1.6391277313232422e-07
+    },
+    {
+      "file": "56bce402-3d38-4f90-b20c-72886a47a072___RS_HL 1704.JPG",
+      "ground_truth": "Strawberry___healthy",
+      "predicted": "Strawberry___healthy",
+      "confidence": 96.2,
+      "correct": true,
+      "pt_onnx_diff": 3.91155481338501e-08
+    },
+    {
+      "file": "b8e9ed27-8e37-4214-9206-f8c0ef21cf4d___RS_HL 4847.JPG",
+      "ground_truth": "Strawberry___healthy",
+      "predicted": "Strawberry___healthy",
+      "confidence": 98.47,
+      "correct": true,
+      "pt_onnx_diff": 2.0489096641540527e-08
+    },
+    {
+      "file": "06d99389-13fd-4fd1-8734-eb82ea657ce3___UF.GRC_BS_Lab Leaf 8896.JPG",
+      "ground_truth": "Tomato___Bacterial_spot",
+      "predicted": "Tomato___Septoria_leaf_spot",
+      "confidence": 77.56,
+      "correct": false,
+      "pt_onnx_diff": 3.129243850708008e-07
+    },
+    {
+      "file": "14707115-d4c3-4e6b-9895-d1613116fd3f___GCREC_Bact.Sp 3490.JPG",
+      "ground_truth": "Tomato___Bacterial_spot",
+      "predicted": "Soybean___healthy",
+      "confidence": 97.12,
+      "correct": false,
+      "pt_onnx_diff": 1.3504177331924438e-08
+    },
+    {
+      "file": "d504f56f-b000-438e-a81a-e95870d70bb0___GCREC_Bact.Sp 5668.JPG",
+      "ground_truth": "Tomato___Bacterial_spot",
+      "predicted": "Tomato___Bacterial_spot",
+      "confidence": 95.36,
+      "correct": true,
+      "pt_onnx_diff": 5.960464477539063e-08
+    },
+    {
+      "file": "2998c7f2-9f4f-4734-aa39-403dd7211869___RS_Erly.B 7528.JPG",
+      "ground_truth": "Tomato___Early_blight",
+      "predicted": "Tomato___Early_blight",
+      "confidence": 99.39,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "5c81bfc2-d377-4fc8-9f51-ff26a997c20b___RS_Erly.B 6345.JPG",
+      "ground_truth": "Tomato___Early_blight",
+      "predicted": "Tomato___Early_blight",
+      "confidence": 88.92,
+      "correct": true,
+      "pt_onnx_diff": 9.5367431640625e-07
+    },
+    {
+      "file": "5ad16a00-4f2d-4872-a45c-80250b507ecc___RS_Erly.B 9378.JPG",
+      "ground_truth": "Tomato___Early_blight",
+      "predicted": "Tomato___Early_blight",
+      "confidence": 96.9,
+      "correct": true,
+      "pt_onnx_diff": 2.60770320892334e-08
+    },
+    {
+      "file": "dd8c1f50-0407-4011-8dea-a8d0e6c7dbf1___RS_Late.B 6725.JPG",
+      "ground_truth": "Tomato___Late_blight",
+      "predicted": "Tomato___Late_blight",
+      "confidence": 74.71,
+      "correct": true,
+      "pt_onnx_diff": 1.4901161193847656e-07
+    },
+    {
+      "file": "a5ef7726-d20f-4109-985f-7fc8989e4aa5___GHLB_PS Leaf 2.2 Day 8.jpg",
+      "ground_truth": "Tomato___Late_blight",
+      "predicted": "Tomato___Late_blight",
+      "confidence": 87.59,
+      "correct": true,
+      "pt_onnx_diff": 2.9206275939941406e-06
+    },
+    {
+      "file": "ed974f5b-e999-46a9-9e22-da51da2766b6___GHLB_PS Leaf 8 Day 16.jpg",
+      "ground_truth": "Tomato___Late_blight",
+      "predicted": "Tomato___Late_blight",
+      "confidence": 59.84,
+      "correct": true,
+      "pt_onnx_diff": 7.18235969543457e-05
+    },
+    {
+      "file": "465b62a2-faff-4309-a9c7-1ac7663f47fd___Crnl_L.Mold 6964.JPG",
+      "ground_truth": "Tomato___Leaf_Mold",
+      "predicted": "Tomato___Leaf_Mold",
+      "confidence": 93.65,
+      "correct": true,
+      "pt_onnx_diff": 2.980232238769531e-07
+    },
+    {
+      "file": "d8466889-2874-44fd-b6e1-128c328d5b84___Crnl_L.Mold 8661.JPG",
+      "ground_truth": "Tomato___Leaf_Mold",
+      "predicted": "Tomato___Leaf_Mold",
+      "confidence": 98.32,
+      "correct": true,
+      "pt_onnx_diff": 2.514570951461792e-08
+    },
+    {
+      "file": "9699b511-4dd6-4037-8cfe-c96c12a7b029___Crnl_L.Mold 8725.JPG",
+      "ground_truth": "Tomato___Leaf_Mold",
+      "predicted": "Tomato___Leaf_Mold",
+      "confidence": 99.27,
+      "correct": true,
+      "pt_onnx_diff": 2.7706846594810486e-08
+    },
+    {
+      "file": "643d1473-b609-4a67-bc28-8dcc7b22c46b___JR_Sept.L.S 8354.JPG",
+      "ground_truth": "Tomato___Septoria_leaf_spot",
+      "predicted": "Tomato___Septoria_leaf_spot",
+      "confidence": 64.69,
+      "correct": true,
+      "pt_onnx_diff": 1.6689300537109375e-06
+    },
+    {
+      "file": "5b0cd135-94b9-4591-966c-0257a0beea5e___JR_Sept.L.S 8486.JPG",
+      "ground_truth": "Tomato___Septoria_leaf_spot",
+      "predicted": "Tomato___Septoria_leaf_spot",
+      "confidence": 97.85,
+      "correct": true,
+      "pt_onnx_diff": 1.1920928955078125e-07
+    },
+    {
+      "file": "920f7311-a00a-421f-8c93-f2e84dddd9fa___Matt.S_CG 2540.JPG",
+      "ground_truth": "Tomato___Septoria_leaf_spot",
+      "predicted": "Tomato___Septoria_leaf_spot",
+      "confidence": 97.13,
+      "correct": true,
+      "pt_onnx_diff": 2.384185791015625e-07
+    },
+    {
+      "file": "dba37938-bb5c-41cd-9a81-76827e1e2bbd___Com.G_SpM_FL 9466.JPG",
+      "ground_truth": "Tomato___Spider_mites Two-spotted_spider_mite",
+      "predicted": "Tomato___Spider_mites Two-spotted_spider_mite",
+      "confidence": 71.71,
+      "correct": true,
+      "pt_onnx_diff": 5.960464477539062e-07
+    },
+    {
+      "file": "44051fdf-8fde-4c5a-8580-119c129b45b1___Com.G_SpM_FL 8945.JPG",
+      "ground_truth": "Tomato___Spider_mites Two-spotted_spider_mite",
+      "predicted": "Tomato___Spider_mites Two-spotted_spider_mite",
+      "confidence": 97.46,
+      "correct": true,
+      "pt_onnx_diff": 2.384185791015625e-07
+    },
+    {
+      "file": "08f0fd0e-d4b1-400d-9df1-2d61d24c95f0___Com.G_SpM_FL 9397.JPG",
+      "ground_truth": "Tomato___Spider_mites Two-spotted_spider_mite",
+      "predicted": "Tomato___Target_Spot",
+      "confidence": 78.04,
+      "correct": false,
+      "pt_onnx_diff": 7.301568984985352e-07
+    },
+    {
+      "file": "ab2f57d3-2cd1-492e-8785-111b062792c6___Com.G_TgS_FL 9984.JPG",
+      "ground_truth": "Tomato___Target_Spot",
+      "predicted": "Tomato___Target_Spot",
+      "confidence": 66.95,
+      "correct": true,
+      "pt_onnx_diff": 2.086162567138672e-07
+    },
+    {
+      "file": "096df0cf-7d61-4e67-8785-cba26db95895___Com.G_TgS_FL 9970.JPG",
+      "ground_truth": "Tomato___Target_Spot",
+      "predicted": "Tomato___Target_Spot",
+      "confidence": 95.72,
+      "correct": true,
+      "pt_onnx_diff": 1.862645149230957e-08
+    },
+    {
+      "file": "dcf0109d-40cb-4aae-be1d-a3f4d36f5e6d___Com.G_TgS_FL 0762.JPG",
+      "ground_truth": "Tomato___Target_Spot",
+      "predicted": "Tomato___Target_Spot",
+      "confidence": 42.37,
+      "correct": true,
+      "pt_onnx_diff": 1.519918441772461e-06
+    },
+    {
+      "file": "d468bddb-d8b2-42a3-957a-db50c4935ffa___UF.GRC_YLCV_Lab 01261.JPG",
+      "ground_truth": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "predicted": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "confidence": 99.63,
+      "correct": true,
+      "pt_onnx_diff": 5.704350769519806e-09
+    },
+    {
+      "file": "239580d0-a58b-4c44-ba1c-b195629d03e6___UF.GRC_YLCV_Lab 01787.JPG",
+      "ground_truth": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "predicted": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "confidence": 99.91,
+      "correct": true,
+      "pt_onnx_diff": 5.675246939063072e-10
+    },
+    {
+      "file": "5b03f612-aec0-4a00-aaab-f49d96b46830___YLCV_GCREC 2431.JPG",
+      "ground_truth": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "predicted": "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+      "confidence": 99.33,
+      "correct": true,
+      "pt_onnx_diff": 9.778887033462524e-09
+    },
+    {
+      "file": "01b32f27-2b9b-4961-805b-8066bf4d90f1___PSU_CG 2417.JPG",
+      "ground_truth": "Tomato___Tomato_mosaic_virus",
+      "predicted": "Tomato___Tomato_mosaic_virus",
+      "confidence": 77.24,
+      "correct": true,
+      "pt_onnx_diff": 2.384185791015625e-07
+    },
+    {
+      "file": "ccbfedd0-e8d7-4f09-aa7b-98213e408c39___PSU_CG 2216.JPG",
+      "ground_truth": "Tomato___Tomato_mosaic_virus",
+      "predicted": "Tomato___Tomato_mosaic_virus",
+      "confidence": 69.9,
+      "correct": true,
+      "pt_onnx_diff": 2.980232238769531e-07
+    },
+    {
+      "file": "49a98ba1-a1b1-4d4b-85af-29aa6648fc64___PSU_CG 2292.JPG",
+      "ground_truth": "Tomato___Tomato_mosaic_virus",
+      "predicted": "Tomato___Tomato_mosaic_virus",
+      "confidence": 93.02,
+      "correct": true,
+      "pt_onnx_diff": 8.568167686462402e-08
+    },
+    {
+      "file": "55bcfcce-70f4-4634-8107-0a8207da2b14___GH_HL Leaf 317.2.JPG",
+      "ground_truth": "Tomato___healthy",
+      "predicted": "Tomato___healthy",
+      "confidence": 77.79,
+      "correct": true,
+      "pt_onnx_diff": 6.556510925292969e-07
+    },
+    {
+      "file": "6657a918-63fb-49d1-a74d-8ef6bbb66231___RS_HL 9816.JPG",
+      "ground_truth": "Tomato___healthy",
+      "predicted": "Tomato___healthy",
+      "confidence": 99.17,
+      "correct": true,
+      "pt_onnx_diff": 4.889443516731262e-09
+    },
+    {
+      "file": "3005a6ed-8ede-4bc5-ab3c-a54f87c45716___GH_HL Leaf 353.1.JPG",
+      "ground_truth": "Tomato___healthy",
+      "predicted": "Tomato___healthy",
+      "confidence": 99.58,
+      "correct": true,
+      "pt_onnx_diff": 1.6065314412117004e-08
+    }
+  ],
+  "pytorch_onnx_parity": [],
+  "overall_test_accuracy": 94.74,
+  "total_evaluated": 114,
+  "correct_predictions": 108
+}

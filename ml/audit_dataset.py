@@ -19,7 +19,7 @@ def audit_plantvillage_dataset(dataset_dir="plantvillage dataset/color", output_
         "dataset_path": str(root),
         "total_classes": len(class_dirs),
         "total_images": 0,
-        "format_counts": defaultdict(int),
+        "format_counts": {},
         "corrupted_files": [],
         "empty_classes": [],
         "classes": {},
@@ -28,6 +28,7 @@ def audit_plantvillage_dataset(dataset_dir="plantvillage dataset/color", output_
 
     seen_hashes = {}
     duplicates = []
+    format_counts = defaultdict(int)
 
     for c_dir in class_dirs:
         class_name = c_dir.name
@@ -42,7 +43,7 @@ def audit_plantvillage_dataset(dataset_dir="plantvillage dataset/color", output_
         for img_path in img_files:
             ext = img_path.suffix.lower()
             formats[ext] += 1
-            stats["format_counts"][ext] += 1
+            format_counts[ext] += 1
 
             # Validate readability
             try:
@@ -71,7 +72,7 @@ def audit_plantvillage_dataset(dataset_dir="plantvillage dataset/color", output_
         stats["total_images"] += valid_count
 
     stats["duplicate_hash_count"] = len(duplicates)
-    stats["format_counts"] = dict(stats["format_counts"])
+    stats["format_counts"] = dict(format_counts)
 
     os.makedirs(os.path.dirname(output_report), exist_ok=True)
     with open(output_report, "w") as f:
