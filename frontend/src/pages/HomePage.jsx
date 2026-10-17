@@ -13,6 +13,7 @@ import { useConnectivity } from '../context/ConnectivityContext';
 import { useLanguage } from '../context/LanguageContext';
 import AppHeader from '../components/navigation/AppHeader';
 import OfflineBanner from '../components/common/OfflineBanner';
+import { handleImageError } from '../utils/imageUtils';
 import api from '../services/api';
 
 export const HomePage = () => {
@@ -191,11 +192,13 @@ export const HomePage = () => {
                   onClick={() => navigate('/crops')}
                   className="shrink-0 w-36 bg-white border border-[#EAE5DE] rounded-2xl p-3 shadow-xs hover:border-[#14382B]/30 cursor-pointer transition-all flex flex-col items-center text-center space-y-2"
                 >
-                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#FAF8F5] shadow-xs">
+                  <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#FAF8F5] shadow-xs bg-[#EDF7EE]">
                     <img
                       src={crop.imageUrl}
                       alt={crop.cropName}
+                      onError={handleImageError}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   </div>
                   <div>
@@ -241,12 +244,14 @@ export const HomePage = () => {
                   </p>
                 </div>
                 <span className="text-[11px] text-[#9CA3AF]">
-                  {new Date(recentDiagnosis.createdAt || Date.now()).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {recentDiagnosis.createdAt
+                    ? new Date(recentDiagnosis.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : 'Recently'}
                 </span>
               </div>
 

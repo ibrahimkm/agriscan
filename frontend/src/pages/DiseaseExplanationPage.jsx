@@ -21,7 +21,7 @@ export const DiseaseExplanationPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
-  const { t, translateCrop, translateDisease } = useLanguage();
+  const { t, translateDisease } = useLanguage();
 
   const diagnosis = location.state?.diagnosis || {
     cropName: 'Tomato',

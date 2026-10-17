@@ -4,6 +4,7 @@ import { Search, Plus, Sprout, ChevronRight } from 'lucide-react';
 import AppHeader from '../components/navigation/AppHeader';
 import OfflineBanner from '../components/common/OfflineBanner';
 import { useLanguage } from '../context/LanguageContext';
+import { handleImageError } from '../utils/imageUtils';
 import api from '../services/api';
 
 export const MyCropsPage = () => {
@@ -20,7 +21,7 @@ export const MyCropsPage = () => {
       _id: 'tomato_1',
       cropName: 'Tomato',
       cropType: 'Solanum lycopersicum',
-      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=400&auto=format&fit=crop&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=80',
       healthStatus: 'at_risk',
       diagnosesCount: 12,
     },
@@ -183,11 +184,13 @@ export const MyCropsPage = () => {
               >
                 {/* Top: Crop image & Status dot */}
                 <div className="flex items-start justify-between">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5]">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] bg-[#EDF7EE]">
                     <img
                       src={crop.imageUrl}
                       alt={crop.cropName}
+                      onError={handleImageError}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
                     />
                   </div>
                   <span

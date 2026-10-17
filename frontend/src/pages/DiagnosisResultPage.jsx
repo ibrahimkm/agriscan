@@ -117,7 +117,7 @@ export const DiagnosisResultPage = () => {
         <div className="flex items-start justify-between gap-2 pt-1">
           <div className="flex-1 min-w-0">
             <span className="text-[11px] font-bold text-[#6B7280] tracking-wider uppercase block truncate">
-              CROP: {translateCrop(diagnosis.cropName)?.toUpperCase() || 'TOMATO'}
+              CROP: {diagnosis.cropName ? translateCrop(diagnosis.cropName)?.toUpperCase() : (t('crop') || 'PLANT')}
             </span>
             <h2
               onClick={() => navigate(`/diagnosis/${id}/explanation`, { state: { diagnosis } })}

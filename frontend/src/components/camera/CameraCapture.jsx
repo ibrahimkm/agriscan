@@ -1,60 +1,113 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, Image as ImageIcon, Zap, ZapOff, Info, RotateCcw, X, Check, VideoOff, RefreshCw, Upload } from 'lucide-react';
+import { Info, RotateCcw, X, Check, VideoOff, RefreshCw, Upload } from 'lucide-react';
 
 export const CameraCapture = ({ onCapture, onCancel }) => {
   const [zoom, setZoom] = useState('1x');
-  const [flash, setFlash] = useState(false);
   const [cameraStatus, setCameraStatus] = useState('idle'); // 'idle' | 'requesting' | 'active' | 'denied' | 'unsupported' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
+  const [isVideoReady, setIsVideoReady] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const activeSessionIdRef = useRef(0);
 
   const stopCamera = useCallback(() => {
+    activeSessionIdRef.current += 1;
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      try {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      } catch (e) {
+        console.warn('[CameraCapture] Error stopping tracks:', e);
+      }
       streamRef.current = null;
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
+    setIsVideoReady(false);
   }, []);
 
   const startCamera = useCallback(async () => {
+    const currentSessionId = ++activeSessionIdRef.current;
     stopCamera();
+
+    const isSecure =
+      window.isSecureContext ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
 
     if (!navigator?.mediaDevices?.getUserMedia) {
       setCameraStatus('unsupported');
-      setErrorMessage('Camera access is not supported by your browser or requires HTTPS.');
+      setErrorMessage(
+        !isSecure
+          ? 'Camera access requires a secure connection (HTTPS). Please open AgriScan over HTTPS or upload a photo from your files.'
+          : 'Camera access is not supported by your browser.'
+      );
       return;
     }
 
     setCameraStatus('requesting');
     setErrorMessage('');
+    setIsVideoReady(false);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920, min: 640 }, height: { ideal: 1080, min: 480 } },
         audio: false,
       });
+
+      if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
       streamRef.current = stream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch((err) => console.warn('Video play error:', err));
-          setCameraStatus('active');
+      stream.getVideoTracks().forEach((track) => {
+        track.onended = () => {
+          if (isMountedRef.current && currentSessionId === activeSessionIdRef.current) {
+            stopCamera();
+            setCameraStatus('idle');
+          }
         };
+      });
+
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+
+        const checkReadiness = () => {
+          if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
+          if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+            setIsVideoReady(true);
+            setCameraStatus('active');
+          }
+        };
+
+        video.onloadedmetadata = () => {
+          video
+            .play()
+            .then(() => checkReadiness())
+            .catch((err) => {
+              console.warn('[CameraCapture] Video play error:', err);
+              checkReadiness();
+            });
+        };
+
+        video.oncanplay = checkReadiness;
+        video.onplaying = checkReadiness;
       } else {
         setCameraStatus('active');
       }
     } catch (err) {
+      if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
       stopCamera();
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraStatus('denied');
-        setErrorMessage('Camera permission was denied. Please allow camera permissions in browser settings or upload from files.');
-      } else if (err.name === 'NotFoundError') {
+        setErrorMessage('Camera permission was blocked. Please allow camera permissions in browser settings or upload from files.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraStatus('unsupported');
         setErrorMessage('No camera hardware found on this device.');
       } else {
@@ -65,20 +118,30 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
   }, [stopCamera]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     startCamera();
     return () => {
+      isMountedRef.current = false;
       stopCamera();
     };
   }, [startCamera, stopCamera]);
 
   const handleCapture = () => {
-    if (cameraStatus === 'active' && videoRef.current && videoRef.current.videoWidth > 0) {
+    const video = videoRef.current;
+    if (cameraStatus === 'active' && video && video.videoWidth > 0 && video.videoHeight > 0) {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+      if (!dataUrl || dataUrl === 'data:,' || dataUrl.length < 200) {
+        console.warn('[CameraCapture] Empty frame captured.');
+        return;
+      }
+
       setCapturedImage(dataUrl);
       stopCamera();
     }
@@ -131,30 +194,31 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
       </div>
 
       {/* Viewfinder Main Feed */}
-      <div className="relative w-full h-full flex items-center justify-center bg-zinc-950">
+      <div className="relative w-full h-full flex items-center justify-center bg-zinc-950 overflow-hidden">
+        {/* Continuously Mounted Video Element */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`w-full h-full object-cover transition-transform duration-300 ${
+            zoom === '2x' ? 'scale-150' : 'scale-100'
+          } ${cameraStatus === 'active' && !capturedImage ? 'block' : 'hidden'}`}
+        />
+
         {capturedImage ? (
           <img
             src={capturedImage}
             alt="Captured leaf preview"
             className="w-full h-full object-cover"
           />
-        ) : cameraStatus === 'active' ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full object-cover transition-transform duration-300 ${
-              zoom === '2x' ? 'scale-150' : 'scale-100'
-            }`}
-          />
         ) : cameraStatus === 'requesting' ? (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">
             <RefreshCw className="w-8 h-8 text-[#22C55E] animate-spin" />
             <p className="text-xs font-semibold text-zinc-300">Connecting to camera...</p>
           </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 max-w-xs">
+        ) : cameraStatus !== 'active' ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 max-w-xs z-10">
             <VideoOff className="w-10 h-10 text-red-400" />
             <h4 className="text-sm font-bold text-white">Camera Unavailable</h4>
             <p className="text-xs text-zinc-400">{errorMessage || 'Could not access device camera.'}</p>
@@ -173,7 +237,7 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
               </button>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Reticle */}
         {!capturedImage && cameraStatus === 'active' && (
@@ -218,20 +282,27 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
               onClick={() => fileInputRef.current?.click()}
               className="p-3 bg-zinc-800/80 rounded-2xl hover:bg-zinc-700 transition-colors"
               title="Upload file"
+              aria-label="Upload file"
             >
               <Upload className="w-5 h-5 text-white" />
             </button>
 
             <button
-              onClick={cameraStatus === 'active' ? handleCapture : startCamera}
+              onClick={cameraStatus === 'active' && isVideoReady ? handleCapture : startCamera}
+              aria-label={cameraStatus === 'active' ? 'Capture leaf photo' : 'Open Camera'}
               className="w-16 h-16 rounded-full border-4 border-white/80 p-1 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
             >
-              <div className={`w-full h-full rounded-full ${cameraStatus === 'active' ? 'bg-white' : 'bg-[#22C55E]'}`} />
+              <div
+                className={`w-full h-full rounded-full ${
+                  cameraStatus === 'active' && isVideoReady ? 'bg-white' : 'bg-[#22C55E]'
+                }`}
+              />
             </button>
 
             <button
               onClick={() => setZoom(zoom === '1x' ? '2x' : '1x')}
               className="p-3 bg-zinc-800/80 rounded-2xl hover:bg-zinc-700 transition-colors text-xs font-bold"
+              aria-label="Toggle Zoom"
             >
               {zoom}
             </button>

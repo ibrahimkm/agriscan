@@ -15,6 +15,7 @@ import OfflineBanner from '../components/common/OfflineBanner';
 import SeverityBadge from '../components/common/SeverityBadge';
 import { useConnectivity } from '../context/ConnectivityContext';
 import { useLanguage } from '../context/LanguageContext';
+import { handleImageError } from '../utils/imageUtils';
 import { getOfflineDiagnoses, clearOfflineDiagnoses } from '../services/indexedDB';
 import api from '../services/api';
 
@@ -37,7 +38,7 @@ export const HistoryPage = () => {
       affectedPercentage: 32,
       createdAt: '2026-10-24T14:30:00Z',
       syncStatus: 'synced',
-      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=400&auto=format&fit=crop&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=80',
     },
     {
       _id: 'mock_2',
@@ -142,8 +143,6 @@ export const HistoryPage = () => {
         {/* Timeline Cards List */}
         <div className="space-y-2.5 sm:space-y-3 pt-1">
           {filteredDiagnoses.map((diag, index) => {
-            const isSynced = diag.syncStatus === 'synced' || !!diag._id;
-
             return (
               <div
                 key={diag._id || diag.id || index}
@@ -155,14 +154,16 @@ export const HistoryPage = () => {
                 className="bg-white border border-[#EAE5DE] hover:border-[#14382B]/30 rounded-3xl p-3 sm:p-4 shadow-xs hover:shadow-md cursor-pointer transition-all flex items-center space-x-3 sm:space-x-3.5 group"
               >
                 {/* Crop Leaf Thumbnail */}
-                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] shrink-0">
+                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] bg-[#EDF7EE] shrink-0">
                   <img
                     src={
                       diag.imageUrl ||
-                      'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=400&auto=format&fit=crop&q=80'
+                      'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=80'
                     }
                     alt={diag.cropName}
+                    onError={handleImageError}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
                   />
                 </div>
 
@@ -175,10 +176,12 @@ export const HistoryPage = () => {
                     <span className="text-[10px] text-[#9CA3AF] flex items-center space-x-1">
                       <Calendar className="w-3 h-3" />
                       <span>
-                        {new Date(diag.createdAt || Date.now()).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                        {diag.createdAt
+                          ? new Date(diag.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })
+                          : 'Recently'}
                       </span>
                     </span>
                   </div>

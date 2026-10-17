@@ -46,7 +46,7 @@ export const createCrop = async (req, res, next) => {
       cropName,
       cropType: cropType || cropName,
       variety: variety || 'Standard Cultivar',
-      imageUrl: imageUrl || 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=400&auto=format&fit=crop&q=80',
+      imageUrl: imageUrl || 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=80',
       fieldInfo: fieldInfo || { block: 'Block A', acreage: 1.5, soilType: 'Loam' },
       healthStatus: healthStatus || 'healthy',
     });

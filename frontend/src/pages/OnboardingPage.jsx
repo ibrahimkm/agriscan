@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, ShieldCheck, Sprout } from 'lucide-react';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { handleImageError } from '../utils/imageUtils';
 
 export const OnboardingPage = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export const OnboardingPage = () => {
     {
       title: 'Identify crop diseases instantly.',
       subtitle: 'Point your camera at a leaf and let our advanced AI diagnose the issue in seconds.',
-      image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
+      image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80',
       badge: 'Real-time AI Diagnosis',
     },
     {
@@ -66,6 +67,7 @@ export const OnboardingPage = () => {
           <img
             src={slides[currentSlide].image}
             alt={slides[currentSlide].title}
+            onError={handleImageError}
             className="w-full h-full object-cover transition-transform duration-700 ease-out scale-105"
           />
 

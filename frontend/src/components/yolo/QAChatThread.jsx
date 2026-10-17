@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Bot, User, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const QAChatThread = ({ qaThread = [], onAskQuestion, loading = false, cropName = 'Tomato' }) => {
   const [inputQuery, setInputQuery] = useState('');

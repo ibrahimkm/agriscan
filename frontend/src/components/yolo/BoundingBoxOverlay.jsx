@@ -1,12 +1,14 @@
 import React from 'react';
+import { handleImageError } from '../../utils/imageUtils';
 
 export const BoundingBoxOverlay = ({ imageUrl, detections = [], selectedDetection, onSelect }) => {
   return (
     <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-md border border-[#EAE5DE] bg-black group select-none">
       {/* Base Image */}
       <img
-        src={imageUrl || 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80'}
+        src={imageUrl || 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80'}
         alt="YOLO Detection Input"
+        onError={handleImageError}
         className="w-full h-full object-cover"
       />
 

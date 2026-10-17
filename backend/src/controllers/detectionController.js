@@ -16,7 +16,7 @@ export const createDetection = async (req, res, next) => {
     } else if (req.body.imageUrl) {
       imageUrl = req.body.imageUrl;
     } else {
-      imageUrl = 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80';
+      imageUrl = 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80';
     }
 
     // Run YOLO object detection inference

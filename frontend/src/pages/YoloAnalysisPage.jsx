@@ -39,7 +39,7 @@ export const YoloAnalysisPage = () => {
     setDetectionResult({
       ...localRes,
       _id: 'yolo_local_offline',
-      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80',
       qaThread: [initialQA],
     });
   }, [language, selectedCrop]);

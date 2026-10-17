@@ -82,7 +82,7 @@ export const seedDatabase = async () => {
       cropTypes: ['Tomato', 'Potato'],
       defaultSeverity: 'moderate',
       microscopicImageUrl: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=800&auto=format&fit=crop&q=80',
-      sampleImageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
+      sampleImageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80',
       description: 'Early blight is a fungal disease caused by Alternaria solani that primarily affects tomato and potato plants. It manifests as dark concentric rings with chlorotic halos, starting on the lower leaves and moving upwards as the canopy matures.',
       whyItHappens: {
         conditions: [
@@ -141,7 +141,7 @@ export const seedDatabase = async () => {
       cropTypes: ['Tomato', 'Potato'],
       defaultSeverity: 'severe',
       microscopicImageUrl: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800&auto=format&fit=crop&q=80',
-      sampleImageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
+      sampleImageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80',
       description: 'Late blight is a highly destructive disease caused by a fungus-like oomycete organism. It affects tomatoes and potatoes, often striking later in the growing season. It is the same pathogen that caused the Irish Potato Famine, and remains one of the most serious threats to tomato farmers today.',
       whyItHappens: {
         conditions: [
@@ -282,7 +282,7 @@ export const seedDatabase = async () => {
       cropName: 'Tomato',
       cropType: 'Solanum lycopersicum',
       variety: 'Roma VF / San Marzano',
-      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=400&auto=format&fit=crop&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=80',
       fieldInfo: { block: 'Block B', acreage: 3.2, soilType: 'Sandy Loam' },
       healthStatus: 'at_risk',
       diagnosesCount: 12,
@@ -425,7 +425,7 @@ export const seedDatabase = async () => {
       cropName: 'Tomato',
       cropType: 'Solanum lycopersicum',
       variety: 'Jitomatillo Heirloom',
-      imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=400&auto=format&fit=crop&q=80',
+      imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&auto=format&fit=crop&q=80',
       fieldInfo: { block: 'Sector 1', acreage: 5.0, soilType: 'Volcanic Soil' },
       healthStatus: 'healthy',
       diagnosesCount: 7,
@@ -452,7 +452,7 @@ export const seedDatabase = async () => {
     cropName: 'Tomato',
     cropVariety: 'San Marzano Heirloom',
     fieldBlock: 'Block B',
-    imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80',
     predictedDisease: 'Early Blight',
     scientificName: 'Alternaria solani',
     confidence: 94,
@@ -525,7 +525,7 @@ export const seedDatabase = async () => {
     userId: raviUser._id,
     diagnosisId: diag1._id,
     cropName: 'Tomato',
-    imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb2260f?w=800&auto=format&fit=crop&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=800&auto=format&fit=crop&q=80',
     detections: [
       {
         classLabel: 'Early Blight Primary Lesion',
