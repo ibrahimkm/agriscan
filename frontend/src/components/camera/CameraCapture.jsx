@@ -171,7 +171,7 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-60px)] md:h-[680px] bg-black text-white flex flex-col justify-between overflow-hidden md:rounded-3xl shadow-2xl">
+    <div className="relative w-full h-[calc(100dvh-60px)] md:h-[680px] max-w-full bg-black text-white flex flex-col justify-between overflow-hidden md:rounded-3xl shadow-2xl">
       {/* Top Banner Guide */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
         <div className="bg-[#FAF8F5]/90 backdrop-blur-md text-[#14382B] p-3 rounded-2xl flex items-center space-x-2.5 shadow-lg border border-white/40 flex-1 mr-3">
@@ -210,7 +210,7 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
           <img
             src={capturedImage}
             alt="Captured leaf preview"
-            className="w-full h-full object-cover"
+            className="max-w-full max-h-full w-full h-full object-contain"
           />
         ) : cameraStatus === 'requesting' ? (
           <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 z-10">

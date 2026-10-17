@@ -9,8 +9,8 @@ export const BottomNavigation = () => {
 
   const navItems = [
     { name: t('home'), path: '/home', icon: Home, id: 'nav-home' },
-    { name: t('diagnose'), path: '/diagnose', icon: Camera, isPrimary: true, id: 'nav-diagnose' },
     { name: t('myCrops'), path: '/crops', icon: Sprout, id: 'nav-crops' },
+    { name: t('diagnose'), path: '/diagnose', icon: Camera, isPrimary: true, id: 'nav-diagnose' },
     { name: t('history'), path: '/history', icon: History, id: 'nav-history' },
     { name: t('profile'), path: '/profile', icon: User, id: 'nav-profile' },
   ];
@@ -26,6 +26,7 @@ export const BottomNavigation = () => {
           const Icon = item.icon;
           const isActive =
             location.pathname === item.path ||
+            (item.path === '/diagnose' && location.pathname === '/analyze') ||
             (item.path === '/crops' && location.pathname.startsWith('/crops')) ||
             (item.path === '/profile' && location.pathname.startsWith('/profile'));
 

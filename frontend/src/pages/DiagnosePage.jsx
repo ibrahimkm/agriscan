@@ -277,9 +277,9 @@ export const DiagnosePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-between relative select-none">
+    <div className="h-screen h-[100dvh] max-h-[100dvh] w-full bg-black text-white flex flex-col justify-between relative select-none overflow-hidden">
       {/* Top Controls Bar */}
-      <div className="absolute top-0 left-0 right-0 z-30 p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
+      <div className="absolute top-0 left-0 right-0 z-30 p-3.5 sm:p-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent">
         <button
           onClick={() => {
             stopCamera();
@@ -310,7 +310,7 @@ export const DiagnosePage = () => {
       </div>
 
       {/* Center Viewfinder Screen */}
-      <div className="relative flex-1 flex items-center justify-center overflow-hidden bg-black">
+      <div className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden bg-black">
         {/* Continuously Mounted Video Feed - Prevents React null-ref lifecycle desync */}
         <video
           ref={videoRef}
@@ -327,7 +327,7 @@ export const DiagnosePage = () => {
           <img
             src={capturedImage}
             alt="Captured leaf preview"
-            className={`w-full h-full object-cover transition-transform duration-300 ${
+            className={`max-w-full max-h-full w-full h-full object-contain transition-transform duration-300 ${
               zoom === '2x' ? 'scale-125' : 'scale-100'
             }`}
           />
@@ -440,7 +440,7 @@ export const DiagnosePage = () => {
 
       {/* Bottom Shutter & Action Controls */}
       <div
-        className="px-4 py-4 sm:p-6 bg-gradient-to-t from-black via-black/90 to-transparent z-30 flex items-center justify-between max-w-md mx-auto w-full"
+        className="shrink-0 px-4 py-4 sm:p-6 bg-gradient-to-t from-black via-black/90 to-transparent z-30 flex items-center justify-between max-w-md mx-auto w-full"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 1.25rem)' }}
       >
         {capturedImage ? (

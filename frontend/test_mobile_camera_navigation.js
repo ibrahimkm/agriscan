@@ -92,6 +92,21 @@ test('BottomNav', 'Diagnose button is visually prominent without pushing neighbo
   assert(content.includes('bg-[#1B4332] text-white'), 'Diagnose button must have dark green botanical background');
 });
 
+test('BottomNav', 'Diagnose is in the exact middle (3rd) slot: Home | My Crops | Diagnose | History | Profile', () => {
+  const content = fs.readFileSync(bottomNavPath, 'utf8');
+  const homeIdx = content.indexOf("'nav-home'");
+  const cropsIdx = content.indexOf("'nav-crops'");
+  const diagIdx = content.indexOf("'nav-diagnose'");
+  const histIdx = content.indexOf("'nav-history'");
+  const profIdx = content.indexOf("'nav-profile'");
+
+  assert(homeIdx !== -1 && cropsIdx !== -1 && diagIdx !== -1 && histIdx !== -1 && profIdx !== -1, 'All 5 item IDs must exist');
+  assert(homeIdx < cropsIdx, 'Home must precede My Crops');
+  assert(cropsIdx < diagIdx, 'My Crops must precede Diagnose');
+  assert(diagIdx < histIdx, 'Diagnose must precede History');
+  assert(histIdx < profIdx, 'History must precede Profile');
+});
+
 test('BottomNav', 'All 5 navigation items have aria-labels, IDs, and route highlighting', () => {
   const content = fs.readFileSync(bottomNavPath, 'utf8');
   assert(content.includes("id: 'nav-home'") && content.includes("id: 'nav-diagnose'"), 'Items must have unique IDs for automation');
@@ -110,7 +125,13 @@ test('BottomNav', 'AppLayout provides generous scroll padding above navigation b
   assert(content.includes('pb-[calc(5rem+env(safe-area-inset-bottom,0px))]'), 'AppLayout must have pb >= 5rem to prevent content occlusion');
 });
 
-for (const vp of viewports) {
+const allTestViewports = [
+  ...viewports,
+  { width: 768, name: 'Tablet (768px)' },
+  { width: 1024, name: 'Desktop (1024px)' },
+];
+
+for (const vp of allTestViewports) {
   test('BottomNav', `Slot width calculation for viewport ${vp.name}`, () => {
     const slotWidth = vp.width / 5;
     assert(slotWidth >= 64, `Slot width at ${vp.width}px is ${slotWidth}px (>= 64px)`);
@@ -119,6 +140,33 @@ for (const vp of viewports) {
     assert(diagnoseMargin >= 10, `Diagnose button has ${diagnoseMargin}px horizontal clearance at ${vp.width}px`);
   });
 }
+
+// ====================================================================
+// SUITE 1B: History & Diagnosis Result Responsive Mobile Layout
+// ====================================================================
+test('ResponsiveLayout', 'HistoryPage stacks image and details vertically on mobile and two-column on sm+', () => {
+  const content = fs.readFileSync(historyPath, 'utf8');
+  assert(content.includes('flex flex-col sm:flex-row'), 'History card must stack vertically on mobile (flex-col) and two-column on sm+ (sm:flex-row)');
+  assert(!content.includes('w-13'), 'History card must not use invalid Tailwind class w-13');
+  assert(content.includes('w-full sm:w-32'), 'Image must be full width on mobile');
+  assert(content.includes('max-h-48'), 'Image height must be constrained on mobile');
+  assert(content.includes('break-words'), 'Disease names must wrap break-words');
+});
+
+test('ResponsiveLayout', 'HeatmapViewer tabs scroll horizontally without overflowing on narrow screens', () => {
+  const heatmapPath = path.join(__dirname, 'src/components/diagnosis/HeatmapViewer.jsx');
+  const content = fs.readFileSync(heatmapPath, 'utf8');
+  assert(content.includes('overflow-x-auto scrollbar-none'), 'HeatmapViewer tabs must be horizontally scrollable');
+  assert(content.includes('shrink-0'), 'Tab buttons must have shrink-0 to prevent text squishing');
+  assert(content.includes('max-h-72'), 'HeatmapViewer must constrain maximum height on mobile');
+});
+
+test('ResponsiveLayout', 'DiagnosisResultPage has responsive two-column grid on desktop and stack on mobile', () => {
+  const diagResultPath = path.join(__dirname, 'src/pages/DiagnosisResultPage.jsx');
+  const content = fs.readFileSync(diagResultPath, 'utf8');
+  assert(content.includes('grid grid-cols-1 md:grid-cols-12'), 'DiagnosisResultPage must use responsive grid');
+  assert(content.includes('break-words'), 'Disease title must break words cleanly');
+});
 
 // ====================================================================
 // SUITE 2: Broken Crop Image & Fallback Verification
@@ -272,6 +320,65 @@ test('MockedStream', 'Mock MediaStream and Video readiness simulation', () => {
   // 4. Stream cleanup
   mockStream.getTracks().forEach(t => t.stop());
   assert(tracksStopped === 1 && mockTrack.readyState === 'ended', 'MediaStreamTrack stopped cleanly');
+});
+
+// ====================================================================
+// SUITE 5: Authentication & Session Integrity Tests
+// ====================================================================
+test('Auth', 'LoginPage renders email, password inputs, submit button, and Link to register', () => {
+  const loginPath = path.join(__dirname, 'src/pages/LoginPage.jsx');
+  const content = fs.readFileSync(loginPath, 'utf8');
+  assert(content.includes('type="text"') || content.includes('type="email"'), 'Email input must exist');
+  assert(content.includes('type="password"'), 'Password input must exist');
+  assert(content.includes('type="submit"'), 'Submit button must exist');
+  assert(content.includes('to="/register"'), 'Must link to /register');
+  assert(content.includes('navigate(from, { replace: true })'), 'Must navigate to from destination upon successful login');
+});
+
+test('Auth', 'RegisterPage renders name, email, password, and farm name inputs', () => {
+  const registerPath = path.join(__dirname, 'src/pages/RegisterPage.jsx');
+  const content = fs.readFileSync(registerPath, 'utf8');
+  assert(content.includes('register('), 'Must invoke register function');
+  assert(content.includes('navigate('), 'Must navigate upon successful registration');
+  assert(content.includes('to="/login"'), 'Must link back to /login');
+});
+
+test('Auth', 'AuthContext defines logout before useEffect, preventing initialization race conditions', () => {
+  const authContextPath = path.join(__dirname, 'src/context/AuthContext.jsx');
+  const content = fs.readFileSync(authContextPath, 'utf8');
+  const logoutDecl = content.indexOf('const logout =');
+  const useEffectDecl = content.indexOf('useEffect(');
+  assert(logoutDecl !== -1 && useEffectDecl !== -1, 'Both logout and useEffect must exist');
+  assert(logoutDecl < useEffectDecl, 'logout must be declared before useEffect to prevent TDZ / reference errors');
+});
+
+test('Auth', 'AuthContext preserves cached user session on refresh during server cold starts or offline', () => {
+  const authContextPath = path.join(__dirname, 'src/context/AuthContext.jsx');
+  const content = fs.readFileSync(authContextPath, 'utf8');
+  assert(content.includes('err.response?.status === 401'), 'Must only logout when server explicitly returns 401');
+  assert(content.includes('localStorage.getItem(\'agriscan_user\')'), 'Must check cached user');
+  assert(!content.includes('} else if (navigator.onLine) {\n            logout();'), 'Must not clear session on network failures while online');
+});
+
+test('Auth', 'AuthContext provides informative error message when server is unreachable', () => {
+  const authContextPath = path.join(__dirname, 'src/context/AuthContext.jsx');
+  const content = fs.readFileSync(authContextPath, 'utf8');
+  assert(content.includes('Unable to connect to AgriScan server'), 'Must return informative connection failure message');
+});
+
+test('Auth', 'ProtectedRoute enforces authentication and guards protected routes', () => {
+  const protectedRoutePath = path.join(__dirname, 'src/components/auth/ProtectedRoute.jsx');
+  const content = fs.readFileSync(protectedRoutePath, 'utf8');
+  assert(content.includes('isAuthenticated'), 'Must check isAuthenticated');
+  assert(content.includes('loading'), 'Must handle loading state');
+  assert(content.includes('<Navigate to="/login"'), 'Must redirect unauthenticated users to /login');
+});
+
+test('Auth', 'App.jsx guards all private routes with ProtectedRoute', () => {
+  const content = fs.readFileSync(appLayoutPath, 'utf8');
+  assert(content.includes('<ProtectedRoute>\n                    <DiagnosePage />') || content.includes('<ProtectedRoute>') && content.includes('<DiagnosePage />'), 'DiagnosePage must be protected');
+  assert(content.includes('<HomePage />'), 'HomePage must be in routes');
+  assert(content.includes('<HistoryPage />'), 'HistoryPage must be in routes');
 });
 
 // ====================================================================

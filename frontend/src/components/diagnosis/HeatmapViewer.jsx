@@ -15,7 +15,7 @@ export const HeatmapViewer = ({
   const isTrulyHealthy = isHealthy || diseaseName.toLowerCase().includes('healthy');
 
   return (
-    <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] md:h-80 rounded-3xl overflow-hidden shadow-md border border-[#EAE5DE] bg-[#14261C]">
+    <div className="relative w-full aspect-[4/3] sm:aspect-[16/11] md:h-80 max-h-72 sm:max-h-80 md:max-h-96 rounded-3xl overflow-hidden shadow-md border border-[#EAE5DE] bg-[#14261C]">
       {/* Base Image with robust fallback */}
       <img
         src={imgSrc}
@@ -97,12 +97,12 @@ export const HeatmapViewer = ({
       )}
 
       {/* 3-Way Floating Toggle: Adaptive & Mobile-responsive */}
-      <div className="absolute bottom-2.5 left-2 right-2 flex justify-center z-10">
-        <div className="bg-white/95 backdrop-blur-md p-1 rounded-full border border-white/70 shadow-lg flex items-center space-x-1 max-w-full overflow-x-auto scrollbar-none">
+      <div className="absolute bottom-2.5 left-2 right-2 flex justify-center z-10 pointer-events-none">
+        <div className="bg-white/95 backdrop-blur-md p-1 rounded-full border border-white/70 shadow-lg flex items-center space-x-1 max-w-full overflow-x-auto scrollbar-none pointer-events-auto">
           <button
             type="button"
             onClick={() => setActiveMode('original')}
-            className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
               activeMode === 'original'
                 ? 'bg-[#14382B] text-white shadow-xs'
                 : 'text-[#4B5563] hover:text-[#14382B]'
@@ -113,7 +113,7 @@ export const HeatmapViewer = ({
           <button
             type="button"
             onClick={() => setActiveMode('analysis')}
-            className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
               activeMode === 'analysis'
                 ? 'bg-[#14382B] text-white shadow-xs'
                 : 'text-[#4B5563] hover:text-[#14382B]'
@@ -124,7 +124,7 @@ export const HeatmapViewer = ({
           <button
             type="button"
             onClick={() => setActiveMode('affected')}
-            className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
               activeMode === 'affected'
                 ? 'bg-[#14382B] text-white shadow-xs'
                 : 'text-[#4B5563] hover:text-[#14382B]'

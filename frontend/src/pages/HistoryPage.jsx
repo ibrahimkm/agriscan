@@ -141,7 +141,7 @@ export const HistoryPage = () => {
         </div>
 
         {/* Timeline Cards List */}
-        <div className="space-y-2.5 sm:space-y-3 pt-1">
+        <div className="space-y-3 sm:space-y-3.5 pt-1">
           {filteredDiagnoses.map((diag, index) => {
             return (
               <div
@@ -151,10 +151,10 @@ export const HistoryPage = () => {
                     state: { diagnosis: diag },
                   })
                 }
-                className="bg-white border border-[#EAE5DE] hover:border-[#14382B]/30 rounded-3xl p-3 sm:p-4 shadow-xs hover:shadow-md cursor-pointer transition-all flex items-center space-x-3 sm:space-x-3.5 group"
+                className="bg-white border border-[#EAE5DE] hover:border-[#14382B]/30 rounded-3xl p-3.5 sm:p-4 shadow-xs hover:shadow-md cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 group overflow-hidden"
               >
-                {/* Crop Leaf Thumbnail */}
-                <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] bg-[#EDF7EE] shrink-0">
+                {/* Crop Leaf Image - 100% width on mobile, constrained aspect ratio, two-column on sm+ */}
+                <div className="w-full sm:w-32 md:w-36 aspect-[16/10] sm:aspect-square max-h-48 sm:max-h-none rounded-2xl overflow-hidden shadow-xs border border-[#FAF8F5] bg-[#14261C] shrink-0 relative">
                   <img
                     src={
                       diag.imageUrl ||
@@ -167,13 +167,14 @@ export const HistoryPage = () => {
                   />
                 </div>
 
-                {/* Details */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">
+                {/* Details Hierarchy */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                  {/* Row 1: Crop Name & Date */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider truncate">
                       {translateCrop(diag.cropName)}
                     </span>
-                    <span className="text-[10px] text-[#9CA3AF] flex items-center space-x-1">
+                    <span className="text-[10px] text-[#9CA3AF] flex items-center space-x-1 shrink-0">
                       <Calendar className="w-3 h-3" />
                       <span>
                         {diag.createdAt
@@ -186,20 +187,26 @@ export const HistoryPage = () => {
                     </span>
                   </div>
 
-                  <h3 className="text-sm md:text-base font-bold text-[#14382B] truncate group-hover:text-[#2D6A4F] transition-colors">
+                  {/* Row 2: Disease Name (wraps naturally) */}
+                  <h3 className="text-base sm:text-lg font-bold text-[#14382B] group-hover:text-[#2D6A4F] transition-colors break-words">
                     {translateDisease(diag.predictedDisease)}
                   </h3>
 
-                  <div className="flex items-center space-x-2 mt-1">
-                    <SeverityBadge severity={diag.severity || 'moderate'} />
-                    <span className="text-[11px] font-bold text-[#374151]">
-                      {diag.confidence}% {t('confidence')}
-                    </span>
+                  {/* Row 3: Badges & Action CTA */}
+                  <div className="flex items-center justify-between gap-2 pt-1 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                      <SeverityBadge severity={diag.severity || 'moderate'} />
+                      <span className="text-[11px] font-bold text-[#374151] bg-[#FAF8F5] px-2 py-0.5 rounded-md border border-[#EAE5DE]">
+                        {diag.confidence}% {t('confidence')}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-1 text-xs font-bold text-[#14382B] shrink-0 ml-auto sm:ml-0">
+                      <span>{t('viewDetails') || 'View Details'}</span>
+                      <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
                   </div>
                 </div>
-
-                {/* Arrow */}
-                <ChevronRight className="w-5 h-5 text-[#9CA3AF] group-hover:text-[#14382B] group-hover:translate-x-0.5 transition-all" />
               </div>
             );
           })}
