@@ -83,12 +83,16 @@ export const HistoryPage = () => {
         if (combined.length === 0) {
           setDiagnoses(defaultMockHistory);
         } else {
-          // deduplicate
+          // deduplicate across offline id, server _id, and clientOfflineId
           const seen = new Set();
           const unique = combined.filter((d) => {
             const id = d._id || d.id;
-            if (seen.has(id)) return false;
-            seen.add(id);
+            const offlineId = d.clientOfflineId || d.id;
+            if ((id && seen.has(id)) || (offlineId && seen.has(offlineId))) {
+              return false;
+            }
+            if (id) seen.add(id);
+            if (offlineId) seen.add(offlineId);
             return true;
           });
           setDiagnoses(unique);

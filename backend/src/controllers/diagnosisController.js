@@ -48,13 +48,14 @@ export const createDiagnosis = async (req, res, next) => {
     if (cropId && mongoose.Types.ObjectId.isValid(cropId)) {
       cropDoc = await Crop.findOne({ _id: cropId, userId: req.user.id });
     } else if (resolvedCropName) {
-      cropDoc = await Crop.findOne({ cropName: { $regex: resolvedCropName, $options: 'i' }, userId: req.user.id });
+      const escapedCrop = resolvedCropName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      cropDoc = await Crop.findOne({ cropName: { $regex: escapedCrop, $options: 'i' }, userId: req.user.id });
     }
 
     // Create diagnosis record
     const diagnosis = new Diagnosis({
       userId: req.user.id,
-      cropId: cropDoc?._id || cropId,
+      cropId: cropDoc?._id || (cropId && mongoose.Types.ObjectId.isValid(cropId) ? cropId : undefined),
       cropName: inferenceResult.cropName,
       cropVariety: inferenceResult.cropVariety,
       fieldBlock: inferenceResult.fieldBlock,

@@ -29,19 +29,24 @@ export const initDB = async () => {
 
 export const saveOfflineDiagnosis = async (diagnosis) => {
   const db = await initDB();
+  const isAlreadySynced = Boolean(diagnosis._id && (diagnosis.syncStatus === 'synced' || !diagnosis.syncStatus));
   const offlineRecord = {
     ...diagnosis,
-    id: diagnosis.id || `offline_diag_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-    syncStatus: 'pending',
+    id: diagnosis.id || diagnosis._id || `offline_diag_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+    syncStatus: isAlreadySynced ? 'synced' : (diagnosis.syncStatus || 'pending'),
     createdAt: diagnosis.createdAt || new Date().toISOString(),
   };
 
   await db.put('diagnoses', offlineRecord);
-  await db.add('syncQueue', {
-    type: 'diagnosis',
-    data: offlineRecord,
-    queuedAt: new Date().toISOString(),
-  });
+
+  // Only add to sync queue if it genuinely needs to be synced to the backend
+  if (!isAlreadySynced) {
+    await db.add('syncQueue', {
+      type: 'diagnosis',
+      data: offlineRecord,
+      queuedAt: new Date().toISOString(),
+    });
+  }
 
   return offlineRecord;
 };
