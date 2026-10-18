@@ -63,12 +63,15 @@ export const updateCrop = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Crop not found' });
     }
 
-    let crop = await Crop.findOne({ _id: req.params.id, userId: req.user.id });
+    const { userId, ...updateData } = req.body;
+    const crop = await Crop.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      updateData,
+      { new: true, runValidators: true }
+    );
     if (!crop) {
       return res.status(404).json({ success: false, message: 'Crop not found' });
     }
-
-    crop = await Crop.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.json({ success: true, data: crop });
   } catch (error) {
     next(error);

@@ -93,7 +93,7 @@ export const HomePage = () => {
     fetchDashboardData();
   }, []);
 
-  const firstName = user?.name ? user.name.split(' ')[0] : 'Ravi';
+  const firstName = user?.name ? user.name.split(' ')[0] : 'Farmer';
 
   return (
     <div className="min-h-screen bg-[#FAF8F5] pb-8 md:pb-8 select-none">

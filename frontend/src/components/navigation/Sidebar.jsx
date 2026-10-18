@@ -112,8 +112,8 @@ export const Sidebar = () => {
             </div>
           </div>
           <button
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               window.location.href = '/login';
             }}
             className="p-1.5 text-[#6B7280] hover:text-[#DC2626] hover:bg-white rounded-lg transition-colors"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Leaf, Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -7,7 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 export const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const { t } = useLanguage();
 
   const [email, setEmail] = useState('');
@@ -16,6 +16,12 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
 
   const from = location.state?.from?.pathname || '/home';
+
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, authLoading, from, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

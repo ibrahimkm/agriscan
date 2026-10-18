@@ -168,3 +168,9 @@ export const updateProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+export const logout = async (req, res) => {
+  res.clearCookie('token');
+  res.json({ success: true, message: 'Logged out successfully' });
+};
+

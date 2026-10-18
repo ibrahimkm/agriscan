@@ -139,8 +139,8 @@ export const ProfilePage = () => {
         {/* Logout Button */}
         <div className="pt-2">
           <button
-            onClick={() => {
-              logout();
+            onClick={async () => {
+              await logout();
               navigate('/login', { replace: true });
             }}
             className="w-full py-3.5 rounded-2xl border border-[#FCA5A5] text-[#DC2626] font-bold text-xs md:text-sm hover:bg-[#FEE2E2]/30 transition-colors flex items-center justify-center space-x-2"

@@ -22,6 +22,7 @@ export const DiagnosePage = () => {
   const streamRef = useRef(null);
   const isMountedRef = useRef(true);
   const activeSessionIdRef = useRef(0);
+  const pollTimerRef = useRef(null);
   const { t, translateCrop } = useLanguage();
 
   const preselectedCrop = location.state?.selectedCrop || null;
@@ -33,9 +34,13 @@ export const DiagnosePage = () => {
   const [flash, setFlash] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
 
-  // Stop all camera tracks cleanly
+  // Stop all camera tracks cleanly and reset stream references
   const stopCamera = useCallback(() => {
     activeSessionIdRef.current += 1;
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach((track) => {
@@ -47,20 +52,28 @@ export const DiagnosePage = () => {
       streamRef.current = null;
     }
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
+      try {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      } catch (e) {
+        // ignore
+      }
     }
     setIsVideoReady(false);
   }, []);
 
-  // Initialize and request camera
+  // Initialize and request camera stream with progressive fallback
   const startCamera = useCallback(async () => {
-    // Increment session ID to cancel any in-flight startup
     const currentSessionId = ++activeSessionIdRef.current;
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
 
-    // Stop any existing stream before starting a new one
+    // Stop existing stream before starting a new one
     stopCamera();
 
-    // Check secure context and API support
+    // Check secure context and browser media support
     const isSecure =
       window.isSecureContext ||
       window.location.hostname === 'localhost' ||
@@ -81,18 +94,27 @@ export const DiagnosePage = () => {
     setIsVideoReady(false);
 
     try {
-      const constraints = {
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920, min: 640 },
-          height: { ideal: 1080, min: 480 },
-        },
-        audio: false,
-      };
+      // 1. Try rear-facing (environment) camera with ideal mobile dimensions
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch (envErr) {
+        console.warn('[DiagnosePage] Environment camera constraints failed, attempting fallback:', envErr?.name);
+        // 2. Progressive fallback: any available video input without facingMode constraints
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-      // Check if session was invalidated or component unmounted while waiting
+      // Check if session was cancelled or component unmounted while awaiting user permission
       if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
@@ -100,7 +122,7 @@ export const DiagnosePage = () => {
 
       streamRef.current = stream;
 
-      // Listen for unexpected track interruption
+      // Handle stream interruption
       stream.getVideoTracks().forEach((track) => {
         track.onended = () => {
           if (isMountedRef.current && currentSessionId === activeSessionIdRef.current) {
@@ -113,11 +135,18 @@ export const DiagnosePage = () => {
       const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.muted = true;
 
-        // Video readiness handler: verifies nonzero dimensions before enabling capture
-        const checkVideoReadiness = () => {
+        // Video readiness checker: confirms video frame dimensions or active playback state
+        const markReady = () => {
           if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
-          if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+          if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
+            if (pollTimerRef.current) {
+              clearInterval(pollTimerRef.current);
+              pollTimerRef.current = null;
+            }
             setIsVideoReady(true);
             setCameraStatus('active');
           }
@@ -126,19 +155,44 @@ export const DiagnosePage = () => {
         video.onloadedmetadata = () => {
           video
             .play()
-            .then(() => {
-              checkVideoReadiness();
-            })
+            .then(() => markReady())
             .catch((playErr) => {
-              console.warn('[DiagnosePage] Video play promise rejected:', playErr);
-              checkVideoReadiness();
+              console.warn('[DiagnosePage] Video play error:', playErr);
+              markReady();
             });
         };
 
-        video.oncanplay = checkVideoReadiness;
-        video.onplaying = checkVideoReadiness;
+        video.oncanplay = markReady;
+        video.onplaying = markReady;
+        video.ontimeupdate = markReady;
+
+        // Immediate play attempt in case metadata was already populated
+        video
+          .play()
+          .then(() => markReady())
+          .catch(() => {});
+
+        // Polling fallback to guarantee activation once decoding starts
+        let pollAttempts = 0;
+        pollTimerRef.current = setInterval(() => {
+          pollAttempts++;
+          if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) {
+            clearInterval(pollTimerRef.current);
+            return;
+          }
+          if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
+            markReady();
+          } else if (pollAttempts >= 30) {
+            // After 3 seconds, if stream has active track, activate video feed
+            if (stream.getVideoTracks().some((t) => t.readyState === 'live')) {
+              markReady();
+            }
+            clearInterval(pollTimerRef.current);
+          }
+        }, 100);
       } else {
         setCameraStatus('active');
+        setIsVideoReady(true);
       }
     } catch (err) {
       if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
@@ -159,28 +213,6 @@ export const DiagnosePage = () => {
         setErrorMessage(
           'Camera is currently in use by another application or tab. Please close other camera apps and retry.'
         );
-      } else if (err.name === 'OverconstrainedError') {
-        // Fallback to generic constraints if environment facingMode fails
-        try {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) {
-            fallbackStream.getTracks().forEach((track) => track.stop());
-            return;
-          }
-          streamRef.current = fallbackStream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = fallbackStream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current?.play().catch(() => {});
-              setIsVideoReady(true);
-              setCameraStatus('active');
-            };
-          }
-          return;
-        } catch (fallbackErr) {
-          setCameraStatus('error');
-          setErrorMessage(fallbackErr.message || 'Unable to access device camera.');
-        }
       } else {
         setCameraStatus('error');
         setErrorMessage(err.message || 'Unable to access device camera.');
@@ -197,18 +229,26 @@ export const DiagnosePage = () => {
     };
   }, [stopCamera]);
 
-  // Handle shutter capture
+  // Handle shutter capture: reads frame from active video element to off-screen canvas
   const handleCapture = () => {
     const video = videoRef.current;
-    if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+    if (video) {
       try {
+        const width = video.videoWidth || video.clientWidth || 640;
+        const height = video.videoHeight || video.clientHeight || 480;
+
+        if (width === 0 || height === 0) {
+          console.warn('[DiagnosePage] Cannot capture from 0x0 video dimensions.');
+          return;
+        }
+
         const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, width, height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
         // Validate nonempty capture
@@ -226,7 +266,7 @@ export const DiagnosePage = () => {
     }
   };
 
-  // Handle file upload
+  // Handle file upload from gallery
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -311,15 +351,15 @@ export const DiagnosePage = () => {
 
       {/* Center Viewfinder Screen */}
       <div className="relative flex-1 min-h-0 w-full flex items-center justify-center overflow-hidden bg-black">
-        {/* Continuously Mounted Video Feed - Prevents React null-ref lifecycle desync */}
+        {/* Continuously Mounted Video Feed - Positioned absolute so layout engine computes videoWidth */}
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className={`w-full h-full object-cover transition-transform duration-300 ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
             zoom === '2x' ? 'scale-125' : 'scale-100'
-          } ${cameraStatus === 'active' && !capturedImage ? 'block' : 'hidden'}`}
+          } ${cameraStatus === 'active' && !capturedImage ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none -z-10'}`}
         />
 
         {/* State A: Captured Image Preview */}
@@ -327,7 +367,7 @@ export const DiagnosePage = () => {
           <img
             src={capturedImage}
             alt="Captured leaf preview"
-            className={`max-w-full max-h-full w-full h-full object-contain transition-transform duration-300 ${
+            className={`max-w-full max-h-full w-full h-full object-contain transition-transform duration-300 z-10 ${
               zoom === '2x' ? 'scale-125' : 'scale-100'
             }`}
           />
@@ -335,7 +375,7 @@ export const DiagnosePage = () => {
 
         {/* State C: Loading / Permission Prompt Overlay */}
         {!capturedImage && cameraStatus === 'requesting' && (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 z-10">
+          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 z-20">
             <RefreshCw className="w-10 h-10 text-[#22C55E] animate-spin" />
             <p className="text-sm font-semibold text-white/90">Starting device camera...</p>
             <p className="text-xs text-white/60 max-w-xs">Please allow camera permissions if prompted by your browser.</p>
@@ -344,7 +384,7 @@ export const DiagnosePage = () => {
 
         {/* State D: Permission Denied or Unsupported Screen */}
         {!capturedImage && (cameraStatus === 'denied' || cameraStatus === 'unsupported' || cameraStatus === 'error') && (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm z-10">
+          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm z-20">
             <div className="w-14 h-14 rounded-full bg-red-950/80 border border-red-500/40 flex items-center justify-center text-red-400">
               <VideoOff className="w-7 h-7" />
             </div>
@@ -371,7 +411,7 @@ export const DiagnosePage = () => {
 
         {/* State E: Idle - User prompts to Start Camera or Upload */}
         {!capturedImage && cameraStatus === 'idle' && (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm z-10">
+          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm z-20">
             <div className="w-16 h-16 rounded-full bg-emerald-950/70 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <Camera className="w-8 h-8" />
             </div>
@@ -401,8 +441,8 @@ export const DiagnosePage = () => {
         {/* Viewfinder Alignment Reticle (only shown during active live stream) */}
         {!capturedImage && cameraStatus === 'active' && (
           <>
-            <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-            <div className="absolute w-[80vw] max-w-[320px] aspect-[3/4] border-2 border-dashed border-white/90 rounded-[50%/40%] flex flex-col items-center justify-between p-4 pointer-events-none shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]">
+            <div className="absolute inset-0 bg-black/25 pointer-events-none z-10" />
+            <div className="absolute w-[80vw] max-w-[320px] aspect-[3/4] border-2 border-dashed border-white/90 rounded-[50%/40%] flex flex-col items-center justify-between p-4 pointer-events-none shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] z-10">
               <div className="w-4 h-1 bg-white/80 rounded-full" />
               <div className="w-full h-0.5 bg-[#22C55E] shadow-[0_0_8px_#22C55E] animate-pulse" />
               <div className="w-4 h-1 bg-white/80 rounded-full" />

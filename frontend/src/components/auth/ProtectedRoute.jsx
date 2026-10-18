@@ -1,11 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Leaf, Loader2 } from 'lucide-react';
 
 export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, logout } = useAuth();
   const location = useLocation();
+
+  const hasStoredToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('agriscan_token'));
+
+  useEffect(() => {
+    if (!loading && (!isAuthenticated || !hasStoredToken)) {
+      if (isAuthenticated && !hasStoredToken) {
+        logout();
+      }
+    }
+  }, [loading, isAuthenticated, hasStoredToken, logout]);
 
   if (loading) {
     return (
@@ -21,7 +31,7 @@ export const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !hasStoredToken) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

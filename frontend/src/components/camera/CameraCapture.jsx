@@ -53,10 +53,15 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
     setIsVideoReady(false);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920, min: 640 }, height: { ideal: 1080, min: 480 } },
-        audio: false,
-      });
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
 
       if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) {
         stream.getTracks().forEach((track) => track.stop());
@@ -77,10 +82,13 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
       const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.muted = true;
 
         const checkReadiness = () => {
           if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
-          if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+          if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
             setIsVideoReady(true);
             setCameraStatus('active');
           }
@@ -98,8 +106,11 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
 
         video.oncanplay = checkReadiness;
         video.onplaying = checkReadiness;
+        video.ontimeupdate = checkReadiness;
+        video.play().then(() => checkReadiness()).catch(() => {});
       } else {
         setCameraStatus('active');
+        setIsVideoReady(true);
       }
     } catch (err) {
       if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
@@ -201,9 +212,9 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
           autoPlay
           playsInline
           muted
-          className={`w-full h-full object-cover transition-transform duration-300 ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
             zoom === '2x' ? 'scale-150' : 'scale-100'
-          } ${cameraStatus === 'active' && !capturedImage ? 'block' : 'hidden'}`}
+          } ${cameraStatus === 'active' && !capturedImage ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none -z-10'}`}
         />
 
         {capturedImage ? (

@@ -38,9 +38,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear token if expired
+      // Clear token if expired or invalid
       localStorage.removeItem('agriscan_token');
       localStorage.removeItem('agriscan_user');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('agriscan:unauthorized'));
+      }
     }
     return Promise.reject(error);
   }
