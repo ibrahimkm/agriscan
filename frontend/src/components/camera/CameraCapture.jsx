@@ -12,9 +12,14 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
   const fileInputRef = useRef(null);
   const isMountedRef = useRef(true);
   const activeSessionIdRef = useRef(0);
+  const initTimeoutRef = useRef(null);
 
   const stopCamera = useCallback(() => {
     activeSessionIdRef.current += 1;
+    if (initTimeoutRef.current) {
+      clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = null;
+    }
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -24,14 +29,26 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
       streamRef.current = null;
     }
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
+      try {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+        videoRef.current.onloadedmetadata = null;
+        videoRef.current.oncanplay = null;
+        videoRef.current.onplaying = null;
+        videoRef.current.ontimeupdate = null;
+      } catch {
+        // ignore
+      }
     }
     setIsVideoReady(false);
   }, []);
 
   const startCamera = useCallback(async () => {
-    const currentSessionId = ++activeSessionIdRef.current;
+    // 1. Invalidate previous sessions and stop existing tracks FIRST
     stopCamera();
+
+    // 2. Generate a fresh session ID for this specific attempt
+    const currentSessionId = ++activeSessionIdRef.current;
 
     const isSecure =
       window.isSecureContext ||
@@ -52,6 +69,14 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
     setErrorMessage('');
     setIsVideoReady(false);
 
+    // Timeout fallback after 10s
+    initTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
+      stopCamera();
+      setCameraStatus('error');
+      setErrorMessage('Camera initialization timed out. Please tap Retry or upload a file.');
+    }, 10000);
+
     try {
       let stream = null;
       try {
@@ -59,7 +84,7 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
           video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
-      } catch (e) {
+      } catch {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
@@ -88,18 +113,25 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
 
         const checkReadiness = () => {
           if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
-          if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
+          if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+            if (initTimeoutRef.current) {
+              clearTimeout(initTimeoutRef.current);
+              initTimeoutRef.current = null;
+            }
             setIsVideoReady(true);
             setCameraStatus('active');
           }
         };
 
         video.onloadedmetadata = () => {
+          checkReadiness();
           video
             .play()
             .then(() => checkReadiness())
             .catch((err) => {
-              console.warn('[CameraCapture] Video play error:', err);
+              if (err?.name !== 'AbortError') {
+                console.warn('[CameraCapture] Video play error:', err);
+              }
               checkReadiness();
             });
         };
@@ -107,8 +139,24 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
         video.oncanplay = checkReadiness;
         video.onplaying = checkReadiness;
         video.ontimeupdate = checkReadiness;
-        video.play().then(() => checkReadiness()).catch(() => {});
+
+        if ('requestVideoFrameCallback' in video) {
+          video.requestVideoFrameCallback(() => checkReadiness());
+        }
+
+        video
+          .play()
+          .then(() => checkReadiness())
+          .catch((err) => {
+            if (err?.name !== 'AbortError') {
+              console.warn('[CameraCapture] Immediate play error:', err);
+            }
+          });
       } else {
+        if (initTimeoutRef.current) {
+          clearTimeout(initTimeoutRef.current);
+          initTimeoutRef.current = null;
+        }
         setCameraStatus('active');
         setIsVideoReady(true);
       }
@@ -121,6 +169,9 @@ export const CameraCapture = ({ onCapture, onCancel }) => {
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraStatus('unsupported');
         setErrorMessage('No camera hardware found on this device.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setCameraStatus('error');
+        setErrorMessage('Camera is currently in use by another app or tab.');
       } else {
         setCameraStatus('error');
         setErrorMessage(err.message || 'Unable to access camera.');

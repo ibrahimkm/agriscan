@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
+    "test": "node test_camera_workflow.js && node test_mobile_camera_navigation.js && node test_camera_lifecycle.js",
     "preview": "vite preview"
   },
   "dependencies": {

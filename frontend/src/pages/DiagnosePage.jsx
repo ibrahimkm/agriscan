@@ -11,6 +11,7 @@ import {
   Upload,
   RefreshCw,
   VideoOff,
+  SwitchCamera,
 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -22,25 +23,44 @@ export const DiagnosePage = () => {
   const streamRef = useRef(null);
   const isMountedRef = useRef(true);
   const activeSessionIdRef = useRef(0);
-  const pollTimerRef = useRef(null);
+  const initTimeoutRef = useRef(null);
+  const frameCallbackIdRef = useRef(null);
   const { t, translateCrop } = useLanguage();
 
   const preselectedCrop = location.state?.selectedCrop || null;
 
-  const [cameraStatus, setCameraStatus] = useState('idle'); // 'idle' | 'requesting' | 'active' | 'denied' | 'unsupported' | 'error'
+  // Explicit lifecycle states:
+  // 'idle' | 'requesting_permission' | 'starting' | 'active' (ready) | 'capturing' | 'denied' | 'unsupported' | 'error'
+  const [cameraStatus, setCameraStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorType, setErrorType] = useState(null); // 'permission' | 'unsupported' | 'in_use' | 'timeout' | 'playback' | 'unknown'
   const [isVideoReady, setIsVideoReady] = useState(false);
   const [zoom, setZoom] = useState('1x');
   const [flash, setFlash] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' | 'user'
   const [capturedImage, setCapturedImage] = useState(null);
 
   // Stop all camera tracks cleanly and reset stream references
   const stopCamera = useCallback(() => {
+    // Invalidate any active startup session
     activeSessionIdRef.current += 1;
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
+
+    // Clear initialization timeout
+    if (initTimeoutRef.current) {
+      clearTimeout(initTimeoutRef.current);
+      initTimeoutRef.current = null;
     }
+
+    // Cancel any registered video frame callback
+    if (frameCallbackIdRef.current && videoRef.current?.cancelVideoFrameCallback) {
+      try {
+        videoRef.current.cancelVideoFrameCallback(frameCallbackIdRef.current);
+      } catch {
+        // ignore
+      }
+      frameCallbackIdRef.current = null;
+    }
+
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach((track) => {
@@ -51,11 +71,16 @@ export const DiagnosePage = () => {
       }
       streamRef.current = null;
     }
+
     if (videoRef.current) {
       try {
         videoRef.current.pause();
         videoRef.current.srcObject = null;
-      } catch (e) {
+        videoRef.current.onloadedmetadata = null;
+        videoRef.current.oncanplay = null;
+        videoRef.current.onplaying = null;
+        videoRef.current.ontimeupdate = null;
+      } catch {
         // ignore
       }
     }
@@ -63,17 +88,14 @@ export const DiagnosePage = () => {
   }, []);
 
   // Initialize and request camera stream with progressive fallback
-  const startCamera = useCallback(async () => {
-    const currentSessionId = ++activeSessionIdRef.current;
-    if (pollTimerRef.current) {
-      clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-
-    // Stop existing stream before starting a new one
+  const startCamera = useCallback(async (requestedFacing = facingMode) => {
+    // 1. Stop any existing stream AND invalidate all prior sessions FIRST
     stopCamera();
 
-    // Check secure context and browser media support
+    // 2. Generate a fresh session ID for this new attempt
+    const currentSessionId = ++activeSessionIdRef.current;
+
+    // 3. Verify secure context and browser media support
     const isSecure =
       window.isSecureContext ||
       window.location.hostname === 'localhost' ||
@@ -81,6 +103,7 @@ export const DiagnosePage = () => {
 
     if (!navigator?.mediaDevices?.getUserMedia) {
       setCameraStatus('unsupported');
+      setErrorType('unsupported');
       setErrorMessage(
         !isSecure
           ? 'Camera access requires a secure connection (HTTPS). Please open AgriScan over HTTPS or upload a photo from your gallery.'
@@ -89,25 +112,49 @@ export const DiagnosePage = () => {
       return;
     }
 
-    setCameraStatus('requesting');
+    setCameraStatus('requesting_permission');
     setErrorMessage('');
+    setErrorType(null);
     setIsVideoReady(false);
 
+    // 4. Arm initialization timeout (10 seconds)
+    initTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
+      console.warn('[DiagnosePage] Camera frame initialization timed out after 10s.');
+      stopCamera();
+      setCameraStatus('error');
+      setErrorType('timeout');
+      setErrorMessage(
+        'Camera initialization timed out. The camera hardware may be busy or unresponsive. Please tap Retry Camera or upload a photo from your gallery.'
+      );
+    }, 10000);
+
     try {
-      // 1. Try rear-facing (environment) camera with ideal mobile dimensions
+      // 5. Try ideal rear-facing (or requested) camera with standard mobile resolution
       let stream = null;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        });
+        const constraints =
+          requestedFacing === 'user'
+            ? {
+                video: {
+                  facingMode: { ideal: 'user' },
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                },
+                audio: false,
+              }
+            : {
+                video: {
+                  facingMode: { ideal: 'environment' },
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                },
+                audio: false,
+              };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (envErr) {
-        console.warn('[DiagnosePage] Environment camera constraints failed, attempting fallback:', envErr?.name);
-        // 2. Progressive fallback: any available video input without facingMode constraints
+        console.warn('[DiagnosePage] Preferred camera constraints failed, attempting fallback:', envErr?.name);
+        // Progressive fallback: generic video input without restrictive constraints
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: false,
@@ -121,8 +168,9 @@ export const DiagnosePage = () => {
       }
 
       streamRef.current = stream;
+      setCameraStatus('starting');
 
-      // Handle stream interruption
+      // Handle external stream interruption
       stream.getVideoTracks().forEach((track) => {
         track.onended = () => {
           if (isMountedRef.current && currentSessionId === activeSessionIdRef.current) {
@@ -139,13 +187,13 @@ export const DiagnosePage = () => {
         video.setAttribute('webkit-playsinline', 'true');
         video.muted = true;
 
-        // Video readiness checker: confirms video frame dimensions or active playback state
+        // Video readiness checker: confirms video frame dimensions before marking ready
         const markReady = () => {
           if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) return;
-          if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
-            if (pollTimerRef.current) {
-              clearInterval(pollTimerRef.current);
-              pollTimerRef.current = null;
+          if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+            if (initTimeoutRef.current) {
+              clearTimeout(initTimeoutRef.current);
+              initTimeoutRef.current = null;
             }
             setIsVideoReady(true);
             setCameraStatus('active');
@@ -153,11 +201,14 @@ export const DiagnosePage = () => {
         };
 
         video.onloadedmetadata = () => {
+          markReady();
           video
             .play()
             .then(() => markReady())
             .catch((playErr) => {
-              console.warn('[DiagnosePage] Video play error:', playErr);
+              if (playErr?.name !== 'AbortError') {
+                console.warn('[DiagnosePage] video.play() error on metadata:', playErr);
+              }
               markReady();
             });
         };
@@ -166,31 +217,27 @@ export const DiagnosePage = () => {
         video.onplaying = markReady;
         video.ontimeupdate = markReady;
 
-        // Immediate play attempt in case metadata was already populated
+        // Modern browsers: requestVideoFrameCallback confirms first rendered frame
+        if ('requestVideoFrameCallback' in video) {
+          frameCallbackIdRef.current = video.requestVideoFrameCallback(() => {
+            markReady();
+          });
+        }
+
+        // Direct play invocation
         video
           .play()
           .then(() => markReady())
-          .catch(() => {});
-
-        // Polling fallback to guarantee activation once decoding starts
-        let pollAttempts = 0;
-        pollTimerRef.current = setInterval(() => {
-          pollAttempts++;
-          if (!isMountedRef.current || currentSessionId !== activeSessionIdRef.current) {
-            clearInterval(pollTimerRef.current);
-            return;
-          }
-          if (video && (video.videoWidth > 0 || video.readyState >= 2)) {
-            markReady();
-          } else if (pollAttempts >= 30) {
-            // After 3 seconds, if stream has active track, activate video feed
-            if (stream.getVideoTracks().some((t) => t.readyState === 'live')) {
-              markReady();
+          .catch((playErr) => {
+            if (playErr?.name !== 'AbortError') {
+              console.warn('[DiagnosePage] Direct video.play() error:', playErr);
             }
-            clearInterval(pollTimerRef.current);
-          }
-        }, 100);
+          });
       } else {
+        if (initTimeoutRef.current) {
+          clearTimeout(initTimeoutRef.current);
+          initTimeoutRef.current = null;
+        }
         setCameraStatus('active');
         setIsVideoReady(true);
       }
@@ -202,58 +249,67 @@ export const DiagnosePage = () => {
 
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraStatus('denied');
+        setErrorType('permission');
         setErrorMessage(
           'Camera permission was blocked. Please tap the lock/settings icon next to your browser address bar to allow Camera access for AgriScan, or upload an image from your gallery.'
         );
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraStatus('unsupported');
+        setErrorType('unsupported');
         setErrorMessage('No camera device was detected on your hardware. Please upload an image from your files.');
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         setCameraStatus('error');
+        setErrorType('in_use');
         setErrorMessage(
           'Camera is currently in use by another application or tab. Please close other camera apps and retry.'
         );
       } else {
         setCameraStatus('error');
+        setErrorType('unknown');
         setErrorMessage(err.message || 'Unable to access device camera.');
       }
     }
-  }, [stopCamera]);
+  }, [facingMode, stopCamera]);
 
-  // Clean up media tracks when leaving the component
+  // Clean up media tracks when leaving the component and auto-start on mount
   useEffect(() => {
     isMountedRef.current = true;
+    startCamera();
     return () => {
       isMountedRef.current = false;
       stopCamera();
     };
-  }, [stopCamera]);
+  }, [startCamera, stopCamera]);
+
+  // Toggle between front and rear cameras cleanly
+  const handleToggleFacingMode = useCallback(() => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    startCamera(nextMode);
+  }, [facingMode, startCamera]);
 
   // Handle shutter capture: reads frame from active video element to off-screen canvas
   const handleCapture = () => {
     const video = videoRef.current;
-    if (video) {
+    if (video && video.videoWidth > 0 && video.videoHeight > 0) {
       try {
-        const width = video.videoWidth || video.clientWidth || 640;
-        const height = video.videoHeight || video.clientHeight || 480;
-
-        if (width === 0 || height === 0) {
-          console.warn('[DiagnosePage] Cannot capture from 0x0 video dimensions.');
+        setCameraStatus('capturing');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setCameraStatus('active');
           return;
         }
 
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        ctx.drawImage(video, 0, 0, width, height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
         // Validate nonempty capture
         if (!dataUrl || dataUrl === 'data:,' || dataUrl.length < 200) {
           console.warn('[DiagnosePage] Canvas capture returned empty data URL.');
+          setCameraStatus('active');
           return;
         }
 
@@ -262,7 +318,10 @@ export const DiagnosePage = () => {
         setCameraStatus('idle');
       } catch (err) {
         console.error('[DiagnosePage] Capture frame error:', err);
+        setCameraStatus('active');
       }
+    } else {
+      console.warn('[DiagnosePage] Cannot capture from 0x0 video dimensions.');
     }
   };
 
@@ -316,6 +375,8 @@ export const DiagnosePage = () => {
     setFlash(!flash);
   };
 
+  const isReady = cameraStatus === 'active' && isVideoReady;
+
   return (
     <div className="h-screen h-[100dvh] max-h-[100dvh] w-full bg-black text-white flex flex-col justify-between relative select-none overflow-hidden">
       {/* Top Controls Bar */}
@@ -331,11 +392,35 @@ export const DiagnosePage = () => {
           <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
         </button>
 
-        {/* Selected Crop or Neutral Badge */}
+        {/* Selected Crop or Truthful Dynamic Status Badge */}
         <div className="bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 text-xs font-semibold text-white flex items-center space-x-1.5 shadow-sm">
-          <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isReady
+                ? 'bg-[#22C55E]'
+                : cameraStatus === 'denied' || cameraStatus === 'unsupported' || cameraStatus === 'error'
+                ? 'bg-red-500'
+                : cameraStatus === 'idle'
+                ? 'bg-zinc-400'
+                : 'bg-amber-400 animate-pulse'
+            }`}
+          />
           <span>
-            {preselectedCrop ? translateCrop(preselectedCrop) : t('readyToScan') || 'Ready to scan'}
+            {preselectedCrop
+              ? translateCrop(preselectedCrop)
+              : isReady
+              ? t('readyToScan') || 'Ready to scan'
+              : cameraStatus === 'requesting_permission' || cameraStatus === 'requesting'
+              ? 'Requesting permission...'
+              : cameraStatus === 'starting'
+              ? 'Starting camera...'
+              : cameraStatus === 'capturing'
+              ? 'Capturing...'
+              : cameraStatus === 'denied'
+              ? 'Permission required'
+              : cameraStatus === 'unsupported' || cameraStatus === 'error'
+              ? 'Camera unavailable'
+              : 'Camera ready'}
           </span>
         </div>
 
@@ -374,40 +459,56 @@ export const DiagnosePage = () => {
         )}
 
         {/* State C: Loading / Permission Prompt Overlay */}
-        {!capturedImage && cameraStatus === 'requesting' && (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 z-20">
-            <RefreshCw className="w-10 h-10 text-[#22C55E] animate-spin" />
-            <p className="text-sm font-semibold text-white/90">Starting device camera...</p>
-            <p className="text-xs text-white/60 max-w-xs">Please allow camera permissions if prompted by your browser.</p>
-          </div>
-        )}
+        {!capturedImage &&
+          (cameraStatus === 'requesting_permission' ||
+            cameraStatus === 'starting' ||
+            cameraStatus === 'requesting') && (
+            <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 z-20">
+              <RefreshCw className="w-10 h-10 text-[#22C55E] animate-spin" />
+              <p className="text-sm font-semibold text-white/90">Starting device camera...</p>
+              <p className="text-xs text-white/60 max-w-xs">
+                {cameraStatus === 'starting'
+                  ? 'Initializing video feed...'
+                  : 'Please allow camera permissions if prompted by your browser.'}
+              </p>
+            </div>
+          )}
 
         {/* State D: Permission Denied or Unsupported Screen */}
-        {!capturedImage && (cameraStatus === 'denied' || cameraStatus === 'unsupported' || cameraStatus === 'error') && (
-          <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm z-20">
-            <div className="w-14 h-14 rounded-full bg-red-950/80 border border-red-500/40 flex items-center justify-center text-red-400">
-              <VideoOff className="w-7 h-7" />
+        {!capturedImage &&
+          (cameraStatus === 'denied' || cameraStatus === 'unsupported' || cameraStatus === 'error') && (
+            <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm z-20">
+              <div className="w-14 h-14 rounded-full bg-red-950/80 border border-red-500/40 flex items-center justify-center text-red-400">
+                <VideoOff className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-white">
+                {errorType === 'permission'
+                  ? 'Camera Permission Required'
+                  : errorType === 'timeout'
+                  ? 'Camera Startup Timed Out'
+                  : errorType === 'in_use'
+                  ? 'Camera Already In Use'
+                  : 'Camera Access Required'}
+              </h3>
+              <p className="text-xs text-white/70 leading-relaxed">{errorMessage}</p>
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full pt-2">
+                <button
+                  onClick={() => startCamera()}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-zinc-800 text-white font-semibold text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center space-x-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry Camera</span>
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#14382B] text-white font-semibold text-xs hover:bg-[#1B4332] transition-colors flex items-center justify-center space-x-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Photo</span>
+                </button>
+              </div>
             </div>
-            <h3 className="text-base font-bold text-white">Camera Access Required</h3>
-            <p className="text-xs text-white/70 leading-relaxed">{errorMessage}</p>
-            <div className="flex flex-col sm:flex-row gap-2.5 w-full pt-2">
-              <button
-                onClick={startCamera}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-zinc-800 text-white font-semibold text-xs hover:bg-zinc-700 transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Retry Camera</span>
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#14382B] text-white font-semibold text-xs hover:bg-[#1B4332] transition-colors flex items-center justify-center space-x-1.5"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload Photo</span>
-              </button>
-            </div>
-          </div>
-        )}
+          )}
 
         {/* State E: Idle - User prompts to Start Camera or Upload */}
         {!capturedImage && cameraStatus === 'idle' && (
@@ -421,7 +522,7 @@ export const DiagnosePage = () => {
             </p>
             <div className="flex flex-col gap-2.5 w-full pt-2">
               <button
-                onClick={startCamera}
+                onClick={() => startCamera()}
                 className="w-full py-3 px-5 rounded-2xl bg-[#14382B] text-white font-bold text-sm shadow-lg hover:bg-[#1B4332] transition-colors flex items-center justify-center space-x-2"
               >
                 <Camera className="w-4 h-4" />
@@ -517,31 +618,33 @@ export const DiagnosePage = () => {
 
             {/* Circular Shutter Button - Enabled when stream is active & video is ready */}
             <button
-              onClick={cameraStatus === 'active' && isVideoReady ? handleCapture : startCamera}
+              onClick={cameraStatus === 'active' && isVideoReady ? handleCapture : () => startCamera()}
               className={`w-20 h-20 rounded-full border-4 border-white/80 p-1 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform ${
-                cameraStatus === 'requesting' ? 'opacity-50 cursor-wait' : ''
+                cameraStatus === 'requesting_permission' || cameraStatus === 'starting'
+                  ? 'opacity-50 cursor-wait'
+                  : ''
               }`}
-              aria-label={cameraStatus === 'active' ? 'Capture leaf photo' : 'Open Camera'}
+              aria-label={cameraStatus === 'active' && isVideoReady ? 'Capture leaf photo' : 'Open Camera'}
             >
               <div
                 className={`w-full h-full rounded-full shadow-lg ${
                   cameraStatus === 'active' && isVideoReady
                     ? 'bg-white'
-                    : cameraStatus === 'requesting'
+                    : cameraStatus === 'requesting_permission' || cameraStatus === 'starting'
                     ? 'bg-[#22C55E] animate-pulse'
                     : 'bg-[#22C55E]'
                 }`}
               />
             </button>
 
-            {/* Reconnect / Toggle camera button */}
+            {/* Switch Camera Button (Front / Rear) */}
             <button
-              onClick={startCamera}
+              onClick={handleToggleFacingMode}
               className="p-3 bg-white/10 backdrop-blur-md rounded-2xl hover:bg-white/20 transition-colors"
-              title="Start or Restart Camera"
-              aria-label="Restart Camera"
+              title={facingMode === 'environment' ? 'Switch to Front Camera' : 'Switch to Rear Camera'}
+              aria-label="Switch Camera"
             >
-              <Camera className="w-6 h-6 text-white" />
+              <SwitchCamera className="w-6 h-6 text-white" />
             </button>
           </div>
         )}
