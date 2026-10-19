@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node test_e2e_prediction.js",
+    "test": "node test_e2e_prediction.js && node test_metrics.js",
+    "test:metrics": "node test_metrics.js",
     "seed": "node src/seed/seedData.js"
   },
   "dependencies": {

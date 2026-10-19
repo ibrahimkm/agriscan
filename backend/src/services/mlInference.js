@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import * as ort from 'onnxruntime-node';
 import sharp from 'sharp';
 import Disease from '../models/Disease.js';
+import { metricsService } from './metricsService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -157,113 +158,132 @@ class MLInferenceService {
    * Run real EfficientNet neural network diagnosis on leaf image
    */
   async runDiseaseDiagnosis({ cropName, imageUrl, base64Image, imageBuffer, filePath, fieldBlock = 'Block A' }) {
-    await this.ensureReady();
+    try {
+      await this.ensureReady();
 
-    // 1. Resolve image buffer
-    const imgBuffer = await this.resolveImageBuffer({ imageUrl, base64Image, imageBuffer, filePath });
+      // 1. Resolve image buffer
+      const imgBuffer = await this.resolveImageBuffer({ imageUrl, base64Image, imageBuffer, filePath });
 
-    // 2. Preprocess to exact ImageNet tensor
-    const tensor = await this.preprocessImageBuffer(imgBuffer);
+      // 2. Preprocess to exact ImageNet tensor
+      const tensor = await this.preprocessImageBuffer(imgBuffer);
 
-    // 3. Execute ONNX inference
-    const feeds = { input_image: tensor };
-    const results = await this.session.run(feeds);
-    const outputTensor = results.class_probabilities || results[Object.keys(results)[0]];
-    const rawLogits = Array.from(outputTensor.data);
-    const probabilities = softmax(rawLogits);
+      // 3. Execute ONNX inference with latency instrumentation
+      const feeds = { input_image: tensor };
+      const inferenceStart = process.hrtime.bigint();
+      const results = await this.session.run(feeds);
+      const inferenceDurationSeconds = Number(process.hrtime.bigint() - inferenceStart) / 1e9;
 
-    // 4. Find highest probability class
-    let maxIdx = 0;
-    let maxProb = -1;
-    const scoredClasses = probabilities.map((p, idx) => ({ idx, prob: p }));
-    scoredClasses.sort((a, b) => b.prob - a.prob);
+      const outputTensor = results.class_probabilities || results[Object.keys(results)[0]];
+      const rawLogits = Array.from(outputTensor.data);
+      const probabilities = softmax(rawLogits);
 
-    maxIdx = scoredClasses[0].idx;
-    maxProb = scoredClasses[0].prob;
+      // 4. Find highest probability class
+      let maxIdx = 0;
+      let maxProb = -1;
+      const scoredClasses = probabilities.map((p, idx) => ({ idx, prob: p }));
+      scoredClasses.sort((a, b) => b.prob - a.prob);
 
-    // Real non-fabricated confidence score (1% - 99%)
-    const confidence = Math.min(99, Math.max(1, Math.round(maxProb * 100)));
+      maxIdx = scoredClasses[0].idx;
+      maxProb = scoredClasses[0].prob;
 
-    const classMeta = this.catalog.classes[maxIdx];
-    if (!classMeta) {
-      throw new Error(`Model prediction index ${maxIdx} does not exist in class catalog.`);
+      // Real non-fabricated confidence score (1% - 99%)
+      const confidence = Math.min(99, Math.max(1, Math.round(maxProb * 100)));
+
+      const classMeta = this.catalog.classes[maxIdx];
+      if (!classMeta) {
+        throw new Error(`Model prediction index ${maxIdx} does not exist in class catalog.`);
+      }
+
+      const predictedDiseaseName = classMeta.disease;
+      const scientificName = classMeta.scientificName;
+      const severity = classMeta.severity || 'moderate';
+      const isHealthy = severity === 'healthy' || predictedDiseaseName.toLowerCase().includes('healthy');
+      const predictedCrop = classMeta.crop || cropName || 'General Crop';
+
+      // Record ML metrics (safely in-process, without saving raw image)
+      metricsService.recordPrediction({
+        cropName: predictedCrop,
+        diseaseName: predictedDiseaseName,
+        confidence,
+        inferenceDurationSeconds,
+        imageSizeBytes: imgBuffer?.length,
+      });
+
+      // 5. Look up agronomic disease details from MongoDB or fallback to verified catalog
+      const dbDisease = await Disease.findOne({
+        $or: [
+          { diseaseName: { $regex: new RegExp(`^${predictedDiseaseName}$`, 'i') } },
+          { scientificName: { $regex: new RegExp(`^${scientificName}$`, 'i') } },
+        ],
+      }).catch(() => null);
+
+      metricsService.recordDbOperation('read', Boolean(dbDisease));
+
+      const enDesc = classMeta.descriptions?.en;
+      const whatIsIt =
+        dbDisease?.description ||
+        enDesc?.whatIsIt ||
+        `${predictedDiseaseName} identified on ${predictedCrop} foliage.`;
+
+      const symptoms = dbDisease?.symptoms?.summary || enDesc?.symptoms || [
+        `Foliar symptoms characteristic of ${predictedDiseaseName}`,
+        'Lesions affecting photosynthetic capacity',
+      ];
+
+      const recommendedAction =
+        dbDisease?.immediateAction?.description ||
+        enDesc?.recommendedAction ||
+        'Inspect crop canopy and apply targeted protection measures.';
+
+      const immediateAction = dbDisease?.immediateAction || {
+        title: enDesc?.immediateActionTitle || (isHealthy ? 'No Action Required' : 'Immediate Action Required'),
+        description: enDesc?.immediateActionDesc || recommendedAction,
+        priority: isHealthy ? 'Low Priority' : 'High Priority',
+      };
+
+      const treatmentSteps = dbDisease?.treatmentSteps || [
+        {
+          id: 'step-1',
+          title: isHealthy ? 'Routine Maintenance' : 'Targeted Treatment',
+          description: recommendedAction,
+          completed: false,
+        },
+      ];
+
+      const preventionTips = dbDisease?.preventionTips || [
+        'Maintain regular canopy scouting and airflow.',
+        'Ensure balanced irrigation to keep foliage dry.',
+        'Sanitize farm tools between rows.',
+      ];
+
+      const safetyNotice =
+        dbDisease?.safetyNotice ||
+        'Always observe label safety recommendations and pre-harvest intervals for any treatment application.';
+
+      return {
+        cropName: predictedCrop,
+        cropVariety: 'Standard Field Variety',
+        fieldBlock,
+        imageUrl: imageUrl || '',
+        predictedDisease: predictedDiseaseName,
+        scientificName,
+        confidence,
+        severity,
+        affectedPercentage: isHealthy ? 0 : classMeta.affectedPercentage || 25,
+        whatIsIt,
+        symptoms,
+        recommendedAction,
+        immediateAction,
+        treatmentSteps,
+        preventionTips,
+        safetyNotice,
+        modelVersion: this.modelVersion,
+        diagnosisStatus: 'completed',
+      };
+    } catch (err) {
+      metricsService.recordPredictionError(err.name || 'inference_error');
+      throw err;
     }
-
-    const predictedDiseaseName = classMeta.disease;
-    const scientificName = classMeta.scientificName;
-    const severity = classMeta.severity || 'moderate';
-    const isHealthy = severity === 'healthy' || predictedDiseaseName.toLowerCase().includes('healthy');
-
-    // 5. Look up agronomic disease details from MongoDB or fallback to verified catalog
-    const dbDisease = await Disease.findOne({
-      $or: [
-        { diseaseName: { $regex: new RegExp(`^${predictedDiseaseName}$`, 'i') } },
-        { scientificName: { $regex: new RegExp(`^${scientificName}$`, 'i') } },
-      ],
-    }).catch(() => null);
-
-    const enDesc = classMeta.descriptions?.en;
-    const predictedCrop = classMeta.crop || cropName || 'General Crop';
-    const whatIsIt =
-      dbDisease?.description ||
-      enDesc?.whatIsIt ||
-      `${predictedDiseaseName} identified on ${predictedCrop} foliage.`;
-
-    const symptoms = dbDisease?.symptoms?.summary || enDesc?.symptoms || [
-      `Foliar symptoms characteristic of ${predictedDiseaseName}`,
-      'Lesions affecting photosynthetic capacity',
-    ];
-
-    const recommendedAction =
-      dbDisease?.immediateAction?.description ||
-      enDesc?.recommendedAction ||
-      'Inspect crop canopy and apply targeted protection measures.';
-
-    const immediateAction = dbDisease?.immediateAction || {
-      title: enDesc?.immediateActionTitle || (isHealthy ? 'No Action Required' : 'Immediate Action Required'),
-      description: enDesc?.immediateActionDesc || recommendedAction,
-      priority: isHealthy ? 'Low Priority' : 'High Priority',
-    };
-
-    const treatmentSteps = dbDisease?.treatmentSteps || [
-      {
-        id: 'step-1',
-        title: isHealthy ? 'Routine Maintenance' : 'Targeted Treatment',
-        description: recommendedAction,
-        completed: false,
-      },
-    ];
-
-    const preventionTips = dbDisease?.preventionTips || [
-      'Maintain regular canopy scouting and airflow.',
-      'Ensure balanced irrigation to keep foliage dry.',
-      'Sanitize farm tools between rows.',
-    ];
-
-    const safetyNotice =
-      dbDisease?.safetyNotice ||
-      'Always observe label safety recommendations and pre-harvest intervals for any treatment application.';
-
-    return {
-      cropName: predictedCrop,
-      cropVariety: 'Standard Field Variety',
-      fieldBlock,
-      imageUrl: imageUrl || '',
-      predictedDisease: predictedDiseaseName,
-      scientificName,
-      confidence,
-      severity,
-      affectedPercentage: isHealthy ? 0 : classMeta.affectedPercentage || 25,
-      whatIsIt,
-      symptoms,
-      recommendedAction,
-      immediateAction,
-      treatmentSteps,
-      preventionTips,
-      safetyNotice,
-      modelVersion: this.modelVersion,
-      diagnosisStatus: 'completed',
-    };
   }
 
   /**

@@ -1,0 +1,102 @@
+name: AgriScan Continuous Monitoring
+
+on:
+  schedule:
+    # Run routine health & availability checks every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      backend_url:
+        description: 'Target Backend URL for health probes'
+        required: false
+        default: 'https://agriscan-backend-3veo.onrender.com'
+      frontend_url:
+        description: 'Target Frontend URL for availability checks'
+        required: false
+        default: 'https://agriscan-frontend-w5nj.onrender.com'
+      max_latency_sec:
+        description: 'Max acceptable health probe latency in seconds (SLA threshold)'
+        required: false
+        default: '5.0'
+      dry_run:
+        description: 'Dry run (inspect health without failing workflow run)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agriscan-monitoring
+  cancel-in-progress: false
+
+jobs:
+  service-health-monitor:
+    name: Service Health & SLA Monitoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Restore Incident Monitoring State
+        uses: actions/cache/restore@v4
+        id: restore-monitor-state
+        with:
+          path: .monitor_state.json
+          key: agriscan-monitor-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            agriscan-monitor-state-
+
+      - name: Run Service Health Probes & Alerting Engine
+        env:
+          BACKEND_URL: ${{ inputs.backend_url || 'https://agriscan-backend-3veo.onrender.com' }}
+          FRONTEND_URL: ${{ inputs.frontend_url || 'https://agriscan-frontend-w5nj.onrender.com' }}
+          MAX_LATENCY_SEC: ${{ inputs.max_latency_sec || '5.0' }}
+          TIMEOUT_SEC: 10.0
+          MAX_RETRIES: 3
+          MONITOR_SMTP_HOST: ${{ secrets.MONITOR_SMTP_HOST }}
+          MONITOR_SMTP_PORT: ${{ secrets.MONITOR_SMTP_PORT || '587' }}
+          MONITOR_SMTP_USERNAME: ${{ secrets.MONITOR_SMTP_USERNAME }}
+          MONITOR_SMTP_PASSWORD: ${{ secrets.MONITOR_SMTP_PASSWORD }}
+          MONITOR_ALERT_TO: ${{ secrets.MONITOR_ALERT_TO }}
+          MONITOR_ALERT_FROM: ${{ secrets.MONITOR_ALERT_FROM }}
+        run: |
+          chmod +x scripts/monitor_health.py
+          DRY_RUN_FLAG=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          python scripts/monitor_health.py $DRY_RUN_FLAG
+
+      - name: Save Updated Incident Monitoring State
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .monitor_state.json
+          key: agriscan-monitor-state-${{ github.run_id }}-${{ github.run_attempt }}
+
+  ml-drift-validation:
+    name: ML Baseline & Drift Validation Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate ML Drift Detection Suite
+        run: |
+          chmod +x ml/monitor_drift.py
+          # Run unit tests validating PSI, JS divergence, and sample sufficiency gating
+          python ml/test_drift_monitoring.py

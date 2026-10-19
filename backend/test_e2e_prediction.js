@@ -29,9 +29,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
+import { metricsMiddleware } from './src/middleware/metricsMiddleware.js';
+import metricsRoutes from './src/routes/metricsRoutes.js';
+
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(metricsMiddleware);
 
 // Health check endpoint (matches server.js contract)
 app.get('/api/health', (req, res) => {
@@ -44,6 +48,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.use('/api/metrics', metricsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/diagnoses', diagnosisRoutes);
 app.use(errorHandler);

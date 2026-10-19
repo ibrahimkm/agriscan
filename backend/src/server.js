@@ -17,6 +17,8 @@ import diagnosisRoutes from './routes/diagnosisRoutes.js';
 import detectionRoutes from './routes/detectionRoutes.js';
 import syncRoutes from './routes/syncRoutes.js';
 import statsRoutes from './routes/statsRoutes.js';
+import { metricsMiddleware } from './middleware/metricsMiddleware.js';
+import metricsRoutes from './routes/metricsRoutes.js';
 
 dotenv.config();
 
@@ -34,6 +36,7 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(morgan('dev'));
+app.use(metricsMiddleware);
 
 // Static uploads directory
 const uploadsPath = path.join(__dirname, '../uploads');
@@ -49,6 +52,9 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date(),
   });
 });
+
+// Metrics endpoint (protected)
+app.use('/api/metrics', metricsRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);
