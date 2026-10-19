@@ -1,11 +1,13 @@
 {
   "metadata": {
+    "type": "dataset_class_distribution_prior",
     "model_version": "AgriScan-Vision-EfficientNetB0-PlantVillage-v3.0",
-    "source": "PlantVillage representative color dataset audit",
+    "source": "PlantVillage representative color dataset audit (54,305 images)",
     "total_images": 54305,
     "num_classes": 38,
     "created_at": "2026-10-19",
-    "notes": "Documented baseline for continuous drift monitoring. Do not edit class proportions manually."
+    "prediction_drift_baseline_configured": false,
+    "notes": "Dataset class-distribution prior derived from 54,305 PlantVillage training and audit images. Represents ground-truth dataset class proportions, NOT empirical model predictions on held-out test data. Automated production prediction-distribution drift monitoring is unconfigured until an empirical held-out model prediction baseline is captured."
   },
   "thresholds": {
     "min_sample_size": 30,

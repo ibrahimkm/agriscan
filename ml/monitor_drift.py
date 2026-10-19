@@ -104,11 +104,13 @@ class DriftDetector:
         min_samples: int = DEFAULT_MIN_SAMPLES,
         psi_warning: float = DEFAULT_PSI_WARNING,
         psi_critical: float = DEFAULT_PSI_CRITICAL,
+        allow_unconfigured_baseline: bool = False,
     ):
         self.baseline_path = baseline_path
         self.min_samples = min_samples
         self.psi_warning = psi_warning
         self.psi_critical = psi_critical
+        self.allow_unconfigured_baseline = allow_unconfigured_baseline
         self.baseline = self._load_baseline()
 
     def _load_baseline(self) -> Dict[str, Any]:
@@ -124,11 +126,57 @@ class DriftDetector:
         self,
         observed_predictions: Dict[str, int],
         confidence_data: Optional[Dict[str, Any]] = None,
+        allow_unconfigured_baseline: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Evaluates drift of observed predictions against documented baseline.
         """
         total_samples = sum(observed_predictions.values())
+        baseline_meta = self.baseline.get("metadata", {})
+        baseline_type = baseline_meta.get("type", "unknown")
+        is_prediction_baseline = baseline_meta.get("prediction_drift_baseline_configured", False)
+        allow_unconfigured = (
+            allow_unconfigured_baseline
+            if allow_unconfigured_baseline is not None
+            else self.allow_unconfigured_baseline
+        )
+
+        confidence_summary = {}
+        if confidence_data:
+            low_conf_count = confidence_data.get("low_confidence_count", 0)
+            low_conf_rate = low_conf_count / total_samples if total_samples > 0 else 0.0
+            confidence_summary = {
+                "low_confidence_count": low_conf_count,
+                "low_confidence_rate": round(low_conf_rate, 4),
+                "low_confidence_warning": low_conf_rate > 0.15,
+            }
+
+        # ----------------------------------------------------
+        # Gate 1: Baseline Validity Check
+        # ----------------------------------------------------
+        if not is_prediction_baseline and not allow_unconfigured:
+            return {
+                "status": "BASELINE_UNCONFIGURED",
+                "sample_count": total_samples,
+                "min_sample_size": self.min_samples,
+                "drift_detected": False,
+                "psi_score": None,
+                "js_divergence": None,
+                "baseline_type": baseline_type,
+                "message": (
+                    "Production model prediction-distribution drift monitoring is currently UNCONFIGURED. "
+                    "The available baseline represents PlantVillage dataset class frequencies, "
+                    "not empirical model predictions on a representative held-out evaluation split. "
+                    "Automated prediction drift scoring is disabled to prevent spurious alerts."
+                ),
+                "confidence_analysis": confidence_summary,
+                "recommendation": (
+                    "Evaluate the deployed model on a representative held-out evaluation set offline to capture "
+                    "an empirical model-prediction baseline before enabling automated production prediction drift alerts."
+                ),
+                "timestamp": baseline_meta.get("created_at"),
+            }
+
         baseline_classes = self.baseline.get("class_proportions", {})
         baseline_crops = self.baseline.get("crop_proportions", {})
 
@@ -234,6 +282,7 @@ def main():
     parser.add_argument("--baseline", default=DEFAULT_BASELINE_PATH, help="Path to baseline distribution JSON")
     parser.add_argument("--min-samples", type=int, default=DEFAULT_MIN_SAMPLES, help="Minimum sample count threshold")
     parser.add_argument("--psi-threshold", type=float, default=DEFAULT_PSI_CRITICAL, help="Critical PSI threshold")
+    parser.add_argument("--allow-unconfigured", action="store_true", help="Allow drift scoring against dataset priors for testing")
     parser.add_argument("--output", help="Optional output JSON path for the report")
 
     args = parser.parse_args()
@@ -242,6 +291,7 @@ def main():
         baseline_path=args.baseline,
         min_samples=args.min_samples,
         psi_critical=args.psi_threshold,
+        allow_unconfigured_baseline=args.allow_unconfigured,
     )
 
     if not args.predictions or not os.path.exists(args.predictions):
@@ -262,6 +312,10 @@ def main():
     print("=" * 70)
     print(f"Status:          {report['status']}")
     print(f"Sample Count:    {report['sample_count']} (Min Required: {report['min_sample_size']})")
+    if report.get("baseline_type"):
+        print(f"Baseline Type:   {report['baseline_type']}")
+    if report.get("message"):
+        print(f"Notice:          {report['message']}")
     if report.get("metrics"):
         print(f"Class PSI:       {report['metrics']['class_psi']} (Critical Threshold: {report['metrics']['psi_thresholds']['critical']})")
         print(f"Crop PSI:        {report['metrics']['crop_psi']}")

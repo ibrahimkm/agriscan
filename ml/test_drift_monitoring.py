@@ -30,40 +30,63 @@ from ml.monitor_drift import (
 
 class TestDriftMonitoring(unittest.TestCase):
     def setUp(self):
-        self.detector = DriftDetector(baseline_path=DEFAULT_BASELINE_PATH, min_samples=30)
-        self.baseline_classes = self.detector.baseline["class_proportions"]
+        # Default detector reflecting unconfigured production state
+        self.default_detector = DriftDetector(baseline_path=DEFAULT_BASELINE_PATH, min_samples=30)
+        # Synthetic test detector with allow_unconfigured_baseline=True for algorithmic math verification
+        self.synthetic_detector = DriftDetector(
+            baseline_path=DEFAULT_BASELINE_PATH,
+            min_samples=30,
+            allow_unconfigured_baseline=True,
+        )
+        self.baseline_classes = self.synthetic_detector.baseline["class_proportions"]
+
+    def test_unconfigured_prediction_drift_baseline_safeguard(self):
+        """
+        Verify that production model prediction-distribution drift is explicitly disabled
+        when the baseline contains only dataset class proportions (not empirical model predictions).
+        """
+        sample_predictions = {
+            "Apple___Apple_scab": 50,
+            "Tomato___healthy": 50,
+        }
+        report = self.default_detector.evaluate_drift(sample_predictions)
+        self.assertEqual(report["status"], "BASELINE_UNCONFIGURED")
+        self.assertFalse(report["drift_detected"])
+        self.assertEqual(report["baseline_type"], "dataset_class_distribution_prior")
+        self.assertIn("UNCONFIGURED", report["message"])
+        self.assertIn("dataset class frequencies", report["message"])
 
     def test_sample_sufficiency_gating(self):
-        """When total samples < min_samples (30), returns INSUFFICIENT_DATA without false alarm."""
+        """Synthetic fixture: When total samples < min_samples (30), returns INSUFFICIENT_DATA without false alarm."""
         small_sample = {
             "Apple___Apple_scab": 5,
             "Tomato___healthy": 3,
         }
-        report = self.detector.evaluate_drift(small_sample)
+        report = self.synthetic_detector.evaluate_drift(small_sample)
         self.assertEqual(report["status"], "INSUFFICIENT_DATA")
         self.assertFalse(report["drift_detected"])
         self.assertEqual(report["sample_count"], 8)
         self.assertIn("below minimum threshold", report["message"])
 
     def test_stable_aligned_distribution(self):
-        """When predictions closely match baseline proportions, PSI is low and status is STABLE."""
+        """Synthetic fixture: When synthetic predictions match baseline proportions, PSI is low and status is STABLE (algorithmic math test, not production evidence)."""
         aligned_predictions = {}
         target_total = 1000
         for cls_name, prop in self.baseline_classes.items():
             aligned_predictions[cls_name] = max(1, int(round(prop * target_total)))
 
-        report = self.detector.evaluate_drift(aligned_predictions)
+        report = self.synthetic_detector.evaluate_drift(aligned_predictions)
         self.assertEqual(report["status"], "STABLE")
         self.assertFalse(report["drift_detected"])
         self.assertLess(report["metrics"]["class_psi"], 0.10)
 
     def test_significant_drift_detection(self):
-        """When predictions heavily shift to a single class (e.g. 95% Apple Scab), flags SIGNIFICANT_DRIFT."""
+        """Synthetic fixture: When synthetic predictions skew heavily to a single class, flags SIGNIFICANT_DRIFT (algorithmic math test, not production evidence)."""
         shifted_predictions = {
             "Apple___Apple_scab": 950,
             "Tomato___healthy": 50,
         }
-        report = self.detector.evaluate_drift(shifted_predictions)
+        report = self.synthetic_detector.evaluate_drift(shifted_predictions)
         self.assertEqual(report["status"], "SIGNIFICANT_DRIFT")
         self.assertTrue(report["drift_detected"])
         self.assertGreaterEqual(report["metrics"]["class_psi"], 0.25)
@@ -83,24 +106,24 @@ class TestDriftMonitoring(unittest.TestCase):
         self.assertAlmostEqual(jsd_identical, 0.0, places=3)
 
     def test_confidence_anomaly_detection(self):
-        """High low-confidence rate (>15%) triggers confidence warning flag."""
+        """Synthetic fixture: High low-confidence rate (>15%) triggers confidence warning flag."""
         predictions = {cls: 10 for cls in list(self.baseline_classes.keys())[:10]}
         conf_data = {"low_confidence_count": 25}  # 25 out of 100 = 25% (>15%)
 
-        report = self.detector.evaluate_drift(predictions, confidence_data=conf_data)
+        report = self.synthetic_detector.evaluate_drift(predictions, confidence_data=conf_data)
         self.assertTrue(report["confidence_analysis"]["low_confidence_warning"])
         self.assertEqual(report["confidence_analysis"]["low_confidence_rate"], 0.25)
 
     def test_pepper_bell_crop_normalization_matches_baseline(self):
         """
-        Regression test: Verify Pepper,_bell crop key matches baseline crop_proportions
+        Regression test: Verify Pepper,_bell crop key matches dataset prior crop_proportions
         and does not falsely report zero expected proportion due to comma removal.
         """
         pepper_predictions = {
             "Pepper,_bell___Bacterial_spot": 25,
             "Pepper,_bell___healthy": 25,
         }
-        report = self.detector.evaluate_drift(pepper_predictions)
+        report = self.synthetic_detector.evaluate_drift(pepper_predictions)
         self.assertIn("crop_details", report)
         crop_details = report["crop_details"]
 
@@ -120,10 +143,10 @@ class TestDriftMonitoring(unittest.TestCase):
 
     def test_all_baseline_crops_normalization(self):
         """
-        Verify that all 38 classes split on '___'[0] correspond to valid baseline crop_proportions
+        Mapping test: Verify that all 38 classes split on '___'[0] correspond to valid dataset prior crop_proportions
         without creating any unexpected orphan keys with 0 expected frequency.
         """
-        baseline_crops = self.detector.baseline.get("crop_proportions", {})
+        baseline_crops = self.synthetic_detector.baseline.get("crop_proportions", {})
         extracted_crops = set()
         for cls_name in self.baseline_classes.keys():
             crop = cls_name.split("___")[0]
