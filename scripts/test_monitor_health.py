@@ -35,6 +35,7 @@ class MockMonitoringServer(http.server.SimpleHTTPRequestHandler):
     """Mock server simulating varied backend responses."""
     health_status = 200
     health_body = {"status": "healthy", "service": "AgriScan API Backend", "version": "2.4.0", "commit": "test-commit-sha"}
+    health_responses = []
     diseases_status = 200
     diseases_body = {"success": True, "count": 4, "data": [{"diseaseName": "Apple Scab"}]}
     frontend_status = 200
@@ -48,7 +49,10 @@ class MockMonitoringServer(http.server.SimpleHTTPRequestHandler):
             time.sleep(self.delay_sec)
 
         if self.path == "/api/health":
-            self.send_response(self.health_status)
+            status = self.health_status
+            if self.health_responses:
+                status = self.health_responses.pop(0)
+            self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(self.health_body).encode())
@@ -70,8 +74,9 @@ class MockMonitoringServer(http.server.SimpleHTTPRequestHandler):
 class TestServiceHealthMonitor(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.port = 58991
-        cls.httpd = socketserver.TCPServer(("127.0.0.1", cls.port), MockMonitoringServer)
+        socketserver.TCPServer.allow_reuse_address = True
+        cls.httpd = socketserver.TCPServer(("127.0.0.1", 0), MockMonitoringServer)
+        cls.port = cls.httpd.server_address[1]
         cls.server_thread = threading.Thread(target=cls.httpd.serve_forever)
         cls.server_thread.daemon = True
         cls.server_thread.start()
@@ -95,6 +100,7 @@ class TestServiceHealthMonitor(unittest.TestCase):
         MockMonitoringServer.diseases_body = {"success": True, "count": 4, "data": [{"diseaseName": "Apple Scab"}]}
         MockMonitoringServer.frontend_status = 200
         MockMonitoringServer.delay_sec = 0.0
+        MockMonitoringServer.health_responses = []
 
         self.test_state_file = ".test_monitor_state.json"
         if os.path.exists(self.test_state_file):
@@ -189,8 +195,8 @@ class TestServiceHealthMonitor(unittest.TestCase):
         self.assertIn("UNAVAILABLE", res["probes"]["backend_health"]["commit_status"])
         self.assertTrue(len(res["warnings"]) > 0)
 
-    def test_latency_sla_violation_flagged(self):
-        """Test that latency exceeding SLA threshold is flagged."""
+    def test_latency_sla_violation_not_silently_passed(self):
+        """Test that latency exceeding SLA threshold fails the probe and is not silently passed."""
         MockMonitoringServer.delay_sec = 0.25
         monitor = ServiceHealthMonitor(
             backend_url=self.base_url,
@@ -201,7 +207,79 @@ class TestServiceHealthMonitor(unittest.TestCase):
             state_file=self.test_state_file,
         )
         res = monitor.run_checks()
-        self.assertFalse(res["probes"]["backend_health"]["latency_sla_passed"])
+        backend_probe = res["probes"]["backend_health"]
+        # Verify SLA violation failed the probe and overall check
+        self.assertFalse(backend_probe["latency_sla_passed"])
+        self.assertFalse(backend_probe["passed"], "Probe with SLA violation must NOT pass")
+        self.assertFalse(res["overall_healthy"], "Overall run must fail when SLA is violated")
+        self.assertEqual(backend_probe["failure_type"], "SLA_VIOLATION")
+        self.assertIn("SLA_VIOLATION", res["failures"][0])
+        # HTTP availability was OK, proving distinct failure classification
+        self.assertEqual(backend_probe["status_code"], 200)
+
+    def test_retry_eventual_recovery_within_budget(self):
+        """Test that service recovering within retry budget (e.g. cold start) passes successfully."""
+        # Returns 503 twice during cold start, then recovers to 200 on 3rd attempt
+        MockMonitoringServer.health_responses = [503, 503, 200]
+        monitor = ServiceHealthMonitor(
+            backend_url=self.base_url,
+            frontend_url=None,
+            max_retries=4,
+            backoff_factor=0.01,  # Fast backoff for unit tests
+            timeout_sec=2.0,
+            state_file=self.test_state_file,
+        )
+        res = monitor.run_checks()
+        backend_probe = res["probes"]["backend_health"]
+        self.assertTrue(backend_probe["passed"])
+        self.assertEqual(backend_probe["status_code"], 200)
+        self.assertIsNone(backend_probe["failure_type"])
+        self.assertTrue(res["overall_healthy"])
+
+    def test_retry_persistent_failure_after_budget_exhausted(self):
+        """Test that persistent failure across all retries is flagged as AVAILABILITY_FAILURE."""
+        MockMonitoringServer.health_status = 503
+        monitor = ServiceHealthMonitor(
+            backend_url=self.base_url,
+            frontend_url=None,
+            max_retries=3,
+            backoff_factor=0.01,
+            timeout_sec=2.0,
+            state_file=self.test_state_file,
+        )
+        res = monitor.run_checks()
+        backend_probe = res["probes"]["backend_health"]
+        self.assertFalse(backend_probe["passed"])
+        self.assertFalse(res["overall_healthy"])
+        self.assertEqual(backend_probe["failure_type"], "AVAILABILITY_FAILURE")
+        self.assertIn("AVAILABILITY_FAILURE", res["failures"][0])
+
+    def test_sla_violation_distinguished_from_availability_failure(self):
+        """Verify SLA violation and availability failure are distinctly labeled in probe results."""
+        # Case A: Availability Failure (503)
+        MockMonitoringServer.health_status = 503
+        monitor_avail = ServiceHealthMonitor(
+            backend_url=self.base_url,
+            frontend_url=None,
+            max_retries=1,
+            state_file=self.test_state_file,
+        )
+        res_avail = monitor_avail.run_checks()
+        self.assertEqual(res_avail["probes"]["backend_health"]["failure_type"], "AVAILABILITY_FAILURE")
+
+        # Case B: SLA Violation (200 with high latency)
+        MockMonitoringServer.health_status = 200
+        MockMonitoringServer.delay_sec = 0.20
+        monitor_sla = ServiceHealthMonitor(
+            backend_url=self.base_url,
+            frontend_url=None,
+            max_latency_sec=0.05,
+            max_retries=1,
+            state_file=self.test_state_file,
+        )
+        res_sla = monitor_sla.run_checks()
+        self.assertEqual(res_sla["probes"]["backend_health"]["failure_type"], "SLA_VIOLATION")
+        self.assertEqual(res_sla["probes"]["backend_health"]["status_code"], 200)
 
     def test_incident_state_transitions(self):
         """Test transition from HEALTHY to INCIDENT to RECOVERY."""

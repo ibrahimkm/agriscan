@@ -60,7 +60,8 @@ jobs:
           FRONTEND_URL: ${{ inputs.frontend_url || 'https://agriscan-frontend-w5nj.onrender.com' }}
           MAX_LATENCY_SEC: ${{ inputs.max_latency_sec || '5.0' }}
           TIMEOUT_SEC: 10.0
-          MAX_RETRIES: 3
+          MAX_RETRIES: 6
+          BACKOFF_FACTOR: 3.0
           MONITOR_SMTP_HOST: ${{ secrets.MONITOR_SMTP_HOST }}
           MONITOR_SMTP_PORT: ${{ secrets.MONITOR_SMTP_PORT || '587' }}
           MONITOR_SMTP_USERNAME: ${{ secrets.MONITOR_SMTP_USERNAME }}

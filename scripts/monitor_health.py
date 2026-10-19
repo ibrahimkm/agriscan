@@ -29,7 +29,8 @@ DEFAULT_FRONTEND_URL = "https://agriscan-frontend-w5nj.onrender.com"
 DEFAULT_STATE_FILE = ".monitor_state.json"
 DEFAULT_TIMEOUT_SEC = 10.0
 DEFAULT_MAX_LATENCY_SEC = 5.0
-DEFAULT_MAX_RETRIES = 3
+DEFAULT_MAX_RETRIES = 6
+DEFAULT_BACKOFF_FACTOR = 3.0
 
 
 def measure_http_request(url: str, timeout: float = DEFAULT_TIMEOUT_SEC) -> Tuple[int, float, str, Dict[str, Any]]:
@@ -75,10 +76,10 @@ def probe_with_retry(
     probe_name: str,
     max_retries: int = DEFAULT_MAX_RETRIES,
     timeout: float = DEFAULT_TIMEOUT_SEC,
-    backoff_factor: float = 2.0,
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
 ) -> Tuple[int, float, str, Dict[str, Any]]:
     """
-    Polls an endpoint with bounded retries and exponential backoff to tolerate cold starts.
+    Polls an endpoint with bounded retries and backoff to tolerate cold starts.
     """
     last_res = (0, 0.0, "", {})
     for attempt in range(1, max_retries + 1):
@@ -87,11 +88,16 @@ def probe_with_retry(
 
         # 200 OK or expected client error (not network error / 000 or 5xx)
         if 200 <= status_code < 400:
+            if attempt > 1:
+                print(f"  ✓ {probe_name} recovered on attempt {attempt}/{max_retries} (HTTP {status_code} in {latency:.2f}s).")
             return last_res
 
         if attempt < max_retries:
             sleep_time = backoff_factor * attempt
-            print(f"  [Retry {attempt}/{max_retries}] {probe_name} returned status {status_code} in {latency:.2f}s. Backing off {sleep_time:.1f}s...")
+            print(
+                f"  [Retry {attempt}/{max_retries}] {probe_name} returned status {status_code} "
+                f"in {latency:.2f}s. Backing off {sleep_time:.1f}s for cold-start recovery..."
+            )
             time.sleep(sleep_time)
 
     return last_res
@@ -106,6 +112,7 @@ class ServiceHealthMonitor:
         max_latency_sec: float = DEFAULT_MAX_LATENCY_SEC,
         timeout_sec: float = DEFAULT_TIMEOUT_SEC,
         max_retries: int = DEFAULT_MAX_RETRIES,
+        backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
         state_file: str = DEFAULT_STATE_FILE,
     ):
         self.backend_url = backend_url.rstrip("/")
@@ -114,6 +121,7 @@ class ServiceHealthMonitor:
         self.max_latency_sec = max_latency_sec
         self.timeout_sec = timeout_sec
         self.max_retries = max_retries
+        self.backoff_factor = backoff_factor
         self.state_file = state_file
 
     def load_state(self) -> Dict[str, Any]:
@@ -172,48 +180,65 @@ class ServiceHealthMonitor:
         health_url = f"{self.backend_url}/api/health"
         print(f"\n[Probe 1/3] Checking Backend Health: {health_url}")
         code, latency, body, data = probe_with_retry(
-            health_url, "Backend Health", max_retries=self.max_retries, timeout=self.timeout_sec
+            health_url,
+            "Backend Health",
+            max_retries=self.max_retries,
+            timeout=self.timeout_sec,
+            backoff_factor=self.backoff_factor,
         )
 
-        probe1_pass = True
-        probe1_msg = []
-
+        is_available = True
+        avail_reasons = []
         if code != 200:
-            probe1_pass = False
-            probe1_msg.append(f"HTTP {code} (expected 200)")
+            is_available = False
+            avail_reasons.append(f"HTTP {code} (expected 200)")
         elif data.get("status") != "healthy":
-            probe1_pass = False
-            probe1_msg.append(f"Status '{data.get('status')}' != 'healthy'")
+            is_available = False
+            avail_reasons.append(f"Status '{data.get('status')}' != 'healthy'")
 
-        # Latency SLA check
-        latency_violation = False
-        if latency > self.max_latency_sec:
-            latency_violation = True
-            probe1_msg.append(f"Latency {latency:.2f}s exceeds SLA {self.max_latency_sec}s")
+        # Latency SLA evaluation
+        latency_ok = (latency <= self.max_latency_sec)
 
         # Commit verification
         live_commit = data.get("commit")
         commit_status = "SKIPPED"
+        commit_mismatch = False
         if self.expected_commit:
             if live_commit:
                 if live_commit == self.expected_commit or self.expected_commit.startswith(live_commit) or live_commit.startswith(self.expected_commit):
                     commit_status = f"VERIFIED ({live_commit})"
                 else:
                     commit_status = f"MISMATCH (expected {self.expected_commit}, got {live_commit})"
-                    probe1_msg.append(commit_status)
-                    probe1_pass = False
+                    commit_mismatch = True
             else:
                 commit_status = "UNAVAILABLE (live endpoint has no commit field)"
                 results["warnings"].append("Live health endpoint does not expose commit; commit verification unconfirmed.")
         elif live_commit:
             commit_status = f"REPORTED ({live_commit})"
 
+        probe1_pass = is_available and latency_ok and not commit_mismatch
+
+        failure_type = None
+        probe1_msg = []
+        if not is_available:
+            failure_type = "AVAILABILITY_FAILURE"
+            probe1_msg.extend(avail_reasons)
+        if not latency_ok:
+            if not failure_type:
+                failure_type = "SLA_VIOLATION"
+            probe1_msg.append(f"Latency {latency:.2f}s exceeds SLA {self.max_latency_sec:.2f}s")
+        if commit_mismatch:
+            if not failure_type:
+                failure_type = "COMMIT_MISMATCH"
+            probe1_msg.append(commit_status)
+
         probe1_result = {
             "name": "Backend /api/health",
             "url": health_url,
             "status_code": code,
             "latency_seconds": round(latency, 3),
-            "latency_sla_passed": not latency_violation,
+            "latency_sla_passed": latency_ok,
+            "failure_type": failure_type,
             "commit_status": commit_status,
             "passed": probe1_pass,
             "details": "; ".join(probe1_msg) if probe1_msg else "HTTP 200 OK, healthy",
@@ -222,8 +247,8 @@ class ServiceHealthMonitor:
 
         if not probe1_pass:
             results["overall_healthy"] = False
-            results["failures"].append(f"Backend Health: {probe1_result['details']}")
-            print(f"  ❌ FAILED: {probe1_result['details']}")
+            results["failures"].append(f"Backend Health [{failure_type}]: {probe1_result['details']}")
+            print(f"  ❌ FAILED [{failure_type}]: {probe1_result['details']}")
         else:
             print(f"  ✓ PASSED: HTTP {code} in {latency:.2f}s | Commit: {commit_status}")
 
@@ -233,21 +258,37 @@ class ServiceHealthMonitor:
         diseases_url = f"{self.backend_url}/api/diseases"
         print(f"\n[Probe 2/3] Checking Public Disease Catalog: {diseases_url}")
         code_d, latency_d, body_d, data_d = probe_with_retry(
-            diseases_url, "Disease Catalog", max_retries=self.max_retries, timeout=self.timeout_sec
+            diseases_url,
+            "Disease Catalog",
+            max_retries=self.max_retries,
+            timeout=self.timeout_sec,
+            backoff_factor=self.backoff_factor,
         )
 
-        probe2_pass = True
-        probe2_msg = []
-
+        is_available_d = True
+        avail_reasons_d = []
         if code_d != 200:
-            probe2_pass = False
-            probe2_msg.append(f"HTTP {code_d} (expected 200)")
+            is_available_d = False
+            avail_reasons_d.append(f"HTTP {code_d} (expected 200)")
         elif not data_d.get("success"):
-            probe2_pass = False
-            probe2_msg.append("Field 'success' is not true")
+            is_available_d = False
+            avail_reasons_d.append("Field 'success' is not true")
         elif not isinstance(data_d.get("data"), list):
-            probe2_pass = False
-            probe2_msg.append("Field 'data' is not a list")
+            is_available_d = False
+            avail_reasons_d.append("Field 'data' is not a list")
+
+        latency_ok_d = (latency_d <= self.max_latency_sec)
+        probe2_pass = is_available_d and latency_ok_d
+
+        failure_type_d = None
+        probe2_msg = []
+        if not is_available_d:
+            failure_type_d = "AVAILABILITY_FAILURE"
+            probe2_msg.extend(avail_reasons_d)
+        if not latency_ok_d:
+            if not failure_type_d:
+                failure_type_d = "SLA_VIOLATION"
+            probe2_msg.append(f"Latency {latency_d:.2f}s exceeds SLA {self.max_latency_sec:.2f}s")
 
         count_d = data_d.get("count", len(data_d.get("data", [])))
 
@@ -256,6 +297,8 @@ class ServiceHealthMonitor:
             "url": diseases_url,
             "status_code": code_d,
             "latency_seconds": round(latency_d, 3),
+            "latency_sla_passed": latency_ok_d,
+            "failure_type": failure_type_d,
             "disease_count": count_d,
             "passed": probe2_pass,
             "details": "; ".join(probe2_msg) if probe2_msg else f"HTTP 200 OK, {count_d} disease references",
@@ -264,8 +307,8 @@ class ServiceHealthMonitor:
 
         if not probe2_pass:
             results["overall_healthy"] = False
-            results["failures"].append(f"Disease Catalog: {probe2_result['details']}")
-            print(f"  ❌ FAILED: {probe2_result['details']}")
+            results["failures"].append(f"Disease Catalog [{failure_type_d}]: {probe2_result['details']}")
+            print(f"  ❌ FAILED [{failure_type_d}]: {probe2_result['details']}")
         else:
             print(f"  ✓ PASSED: HTTP {code_d} in {latency_d:.2f}s | {count_d} diseases verified")
 
@@ -275,24 +318,43 @@ class ServiceHealthMonitor:
         if self.frontend_url:
             print(f"\n[Probe 3/3] Checking Frontend Availability: {self.frontend_url}")
             code_f, latency_f, body_f, _ = probe_with_retry(
-                self.frontend_url, "Frontend", max_retries=self.max_retries, timeout=self.timeout_sec
+                self.frontend_url,
+                "Frontend",
+                max_retries=self.max_retries,
+                timeout=self.timeout_sec,
+                backoff_factor=self.backoff_factor,
             )
 
-            probe3_pass = 200 <= code_f < 400
+            is_available_f = (200 <= code_f < 400)
+            latency_ok_f = (latency_f <= self.max_latency_sec)
+            probe3_pass = is_available_f and latency_ok_f
+
+            failure_type_f = None
+            probe3_msg = []
+            if not is_available_f:
+                failure_type_f = "AVAILABILITY_FAILURE"
+                probe3_msg.append(f"HTTP {code_f} (expected 2xx/3xx)")
+            if not latency_ok_f:
+                if not failure_type_f:
+                    failure_type_f = "SLA_VIOLATION"
+                probe3_msg.append(f"Latency {latency_f:.2f}s exceeds SLA {self.max_latency_sec:.2f}s")
+
             probe3_result = {
                 "name": "Frontend Root",
                 "url": self.frontend_url,
                 "status_code": code_f,
                 "latency_seconds": round(latency_f, 3),
+                "latency_sla_passed": latency_ok_f,
+                "failure_type": failure_type_f,
                 "passed": probe3_pass,
-                "details": f"HTTP {code_f}" if probe3_pass else f"HTTP {code_f} (expected 2xx/3xx)",
+                "details": "; ".join(probe3_msg) if probe3_msg else f"HTTP {code_f}",
             }
             results["probes"]["frontend"] = probe3_result
 
             if not probe3_pass:
                 results["overall_healthy"] = False
-                results["failures"].append(f"Frontend: {probe3_result['details']}")
-                print(f"  ❌ FAILED: {probe3_result['details']}")
+                results["failures"].append(f"Frontend [{failure_type_f}]: {probe3_result['details']}")
+                print(f"  ❌ FAILED [{failure_type_f}]: {probe3_result['details']}")
             else:
                 print(f"  ✓ PASSED: HTTP {code_f} in {latency_f:.2f}s")
         else:
@@ -484,6 +546,7 @@ def main():
     parser.add_argument("--max-latency", type=float, default=float(os.environ.get("MAX_LATENCY_SEC", DEFAULT_MAX_LATENCY_SEC)))
     parser.add_argument("--timeout", type=float, default=float(os.environ.get("TIMEOUT_SEC", DEFAULT_TIMEOUT_SEC)))
     parser.add_argument("--max-retries", type=int, default=int(os.environ.get("MAX_RETRIES", DEFAULT_MAX_RETRIES)))
+    parser.add_argument("--backoff-factor", type=float, default=float(os.environ.get("BACKOFF_FACTOR", DEFAULT_BACKOFF_FACTOR)))
     parser.add_argument("--state-file", default=DEFAULT_STATE_FILE)
     parser.add_argument("--dry-run", action="store_true", help="Always exit 0 regardless of failures (for dry runs)")
 
@@ -496,6 +559,7 @@ def main():
         max_latency_sec=args.max_latency,
         timeout_sec=args.timeout,
         max_retries=args.max_retries,
+        backoff_factor=args.backoff_factor,
         state_file=args.state_file,
     )
 
