@@ -1,4 +1,4 @@
-name: AgriScan CI
+name: AgriScan CI/CD
 
 on:
   push:
@@ -8,6 +8,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      deploy_to_production:
+        description: 'Trigger production deployment to Render after all CI checks pass'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -172,3 +178,75 @@ jobs:
       - name: Run Model Stability Test
         run: |
           python test_leaf_stability.py
+
+  # ====================================================================
+  # JOB 5: Continuous Delivery (Render Deployment Gate & Verification)
+  # ====================================================================
+  cd-deploy-render:
+    name: Deploy to Render (Production)
+    runs-on: ubuntu-latest
+    needs:
+      - security-and-hygiene
+      - frontend-ci
+      - backend-ci
+      - ml-pipeline-ci
+    if: |
+      github.ref == 'refs/heads/main' &&
+      (
+        (github.event_name == 'push' && vars.AUTO_DEPLOY_TO_RENDER == 'true') ||
+        (github.event_name == 'workflow_dispatch' && inputs.deploy_to_production == true)
+      )
+    environment:
+      name: production
+      url: https://agriscan-backend-3veo.onrender.com
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Deployment Configuration & Secrets
+        id: check-secrets
+        run: |
+          echo "Validating Render deployment credentials..."
+          if [ -z "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}" ]; then
+            echo "::error::RENDER_BACKEND_DEPLOY_HOOK secret is not configured in GitHub Repository Secrets."
+            echo "Please configure the deploy hook in GitHub Settings -> Secrets. See docs/DEPLOYMENT.md for details."
+            exit 1
+          fi
+          echo "✓ Render deploy hook credential confirmed present."
+
+      - name: Trigger Render Backend Deployment
+        run: |
+          echo "Triggering Render Backend deploy hook..."
+          HTTP_STATUS=$(curl -s -S --max-time 30 --connect-timeout 10 -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}" || true)
+          echo "Deploy hook response status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ] && [ "$HTTP_STATUS" != "202" ]; then
+            echo "::error::Render backend deploy hook failed with HTTP status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "✓ Render backend deployment triggered successfully."
+
+      - name: Trigger Render Frontend Deployment (Optional)
+        run: |
+          if [ -n "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}" ]; then
+            echo "Triggering Render Frontend deploy hook..."
+            HTTP_STATUS=$(curl -s -S --max-time 30 --connect-timeout 10 -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}" || true)
+            echo "Frontend deploy hook response status: $HTTP_STATUS"
+            if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ] && [ "$HTTP_STATUS" != "202" ]; then
+              echo "::error::Render frontend deploy hook failed with HTTP status $HTTP_STATUS"
+              exit 1
+            fi
+            echo "✓ Render frontend deployment triggered successfully."
+          else
+            echo "RENDER_FRONTEND_DEPLOY_HOOK not configured. Skipping frontend trigger."
+          fi
+
+      - name: Post-Deployment Health & Service Verification
+        env:
+          DEPLOY_SETTLE_TIME: 45
+        run: |
+          chmod +x scripts/verify_deployment.sh
+          # Run non-destructive verification against backend health, public diseases, and auth guard
+          # Passes expected commit hash (${{ github.sha }}) to automatically verify if exposed by backend
+          ./scripts/verify_deployment.sh "https://agriscan-backend-3veo.onrender.com" "${{ secrets.RENDER_FRONTEND_URL }}" "${{ github.sha }}"

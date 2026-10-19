@@ -45,6 +45,7 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     service: 'AgriScan API Backend',
     version: '2.4.0',
+    commit: process.env.RENDER_GIT_COMMIT || null,
     timestamp: new Date(),
   });
 });

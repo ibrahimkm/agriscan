@@ -33,6 +33,17 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Health check endpoint (matches server.js contract)
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'AgriScan API Backend',
+    version: '2.4.0',
+    commit: process.env.RENDER_GIT_COMMIT || null,
+    timestamp: new Date(),
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/diagnoses', diagnosisRoutes);
 app.use(errorHandler);
@@ -74,6 +85,37 @@ async function runE2ETests() {
     console.log(`  ✓ Authenticated as: ${testUser.name} (${testUser.email})`);
 
     const testResults = [];
+
+    // ----------------------------------------------------
+    // Test 0: Health Check Endpoint Contract Verification
+    // ----------------------------------------------------
+    console.log('\n[E2E Step 2.5] Verifying /api/health endpoint contract...');
+    const healthRes = await fetch(`${baseUrl}/api/health`);
+    const healthBody = await healthRes.json();
+    const healthPassed = healthRes.status === 200 &&
+      healthBody.status === 'healthy' &&
+      healthBody.service === 'AgriScan API Backend' &&
+      healthBody.version === '2.4.0' &&
+      Object.prototype.hasOwnProperty.call(healthBody, 'commit') &&
+      healthBody.commit === null;
+
+    // Verify commit field when RENDER_GIT_COMMIT is set
+    process.env.RENDER_GIT_COMMIT = 'test-commit-sha-12345';
+    const healthWithCommitRes = await fetch(`${baseUrl}/api/health`);
+    const healthWithCommitBody = await healthWithCommitRes.json();
+    const commitPassed = healthWithCommitBody.commit === 'test-commit-sha-12345';
+    delete process.env.RENDER_GIT_COMMIT;
+
+    testResults.push({
+      name: 'Health check contract (/api/health)',
+      expected: 'HTTP 200 with status healthy and dynamic commit field',
+      actual: `HTTP ${healthRes.status} (status: ${healthBody.status}, commit: ${healthBody.commit} / ${healthWithCommitBody.commit})`,
+      passed: healthPassed && commitPassed,
+    });
+    if (!healthPassed || !commitPassed) {
+      throw new Error(`Health check contract failed: default=${JSON.stringify(healthBody)}, populated=${JSON.stringify(healthWithCommitBody)}`);
+    }
+    console.log(`  ✓ Health check contract PASSED: commit default=${healthBody.commit}, populated=${healthWithCommitBody.commit}`);
 
     // ----------------------------------------------------
     // Test 3: Upload Real leaf.JPG (Apple Scab) via multipart/form-data
