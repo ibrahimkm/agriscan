@@ -74,3 +74,15 @@ Thumbs.db
 ml/checkpoints/*_backup*
 ml/checkpoints/best_efficientnet_model.pth
 ml/artifacts/model_export_temp.onnx
+ml/artifacts/candidates/
+ml/artifacts/manifests/
+ml/artifacts/*_manifest*.json
+ml/artifacts/mlflow.db*
+ml/artifacts/mlruns/
+ml/artifacts/*.db*
+ml/artifacts/evaluations/
+mlruns/
+backend/ml_models/backups/
+ml/artifacts/backups/
+ml/backups/
+*.lock

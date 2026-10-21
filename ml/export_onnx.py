@@ -4,7 +4,7 @@ import json
 import shutil
 import argparse
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Add ml folder and project root to sys.path
 _ml_dir = str(Path(__file__).resolve().parent)
@@ -20,12 +20,33 @@ import onnxruntime as ort
 
 from ml.model import get_model
 from ml.dataset import PLANTVILLAGE_CLASSES, NORMALIZE_MEAN, NORMALIZE_STD
+from ml.atomic_write import (
+    atomic_write_json,
+    atomic_copy_file,
+    validate_onnx_file,
+    validate_json_file,
+)
 
 DEFAULT_CHECKPOINT_PATH = os.path.join(_ml_dir, "checkpoints", "best_leaf_model.pth")
 DEFAULT_FRONTEND_ONNX = os.path.join(_proj_root, "frontend", "public", "models", "leaf_disease_model.onnx")
 DEFAULT_FRONTEND_JSON = os.path.join(_proj_root, "frontend", "public", "models", "disease_classes.json")
 DEFAULT_BACKEND_ONNX = os.path.join(_proj_root, "backend", "ml_models", "leaf_disease_model.onnx")
 DEFAULT_BACKEND_JSON = os.path.join(_proj_root, "backend", "ml_models", "disease_classes.json")
+
+PROTECTED_PRODUCTION_PATHS = {
+    Path(DEFAULT_FRONTEND_ONNX).resolve(),
+    Path(DEFAULT_FRONTEND_JSON).resolve(),
+    Path(DEFAULT_BACKEND_ONNX).resolve(),
+    Path(DEFAULT_BACKEND_JSON).resolve(),
+    Path(DEFAULT_CHECKPOINT_PATH).resolve(),
+    (Path(_ml_dir) / "artifacts" / "classes.json").resolve(),
+}
+
+PROTECTED_PRODUCTION_DIRS = {
+    Path(DEFAULT_FRONTEND_ONNX).resolve().parent,
+    Path(DEFAULT_BACKEND_ONNX).resolve().parent,
+    Path(DEFAULT_CHECKPOINT_PATH).resolve().parent,
+}
 
 # Complete multilingual agronomic guidance catalog for all 38 PlantVillage classes
 DISEASE_METADATA_TEMPLATE = {
@@ -654,7 +675,11 @@ DISEASE_METADATA_TEMPLATE = {
 }
 
 
-def build_disease_classes_json(classes: list, output_paths: list):
+def build_disease_classes_json(
+    classes: list,
+    output_paths: list,
+    allow_production: bool = False,
+):
     """Generates disease_classes.json containing all detected classes."""
     catalog = {
         "modelName": "AgriScan-EfficientNet-B0-PlantVillage",
@@ -705,10 +730,16 @@ def build_disease_classes_json(classes: list, output_paths: list):
         catalog["classes"].append(item)
 
     for p in output_paths:
-        os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(catalog, f, indent=2, ensure_ascii=False)
-        print(f"[Export] Saved class metadata catalog to: {p}")
+        p_path = Path(p).resolve()
+        if not allow_production and (
+            p_path in PROTECTED_PRODUCTION_PATHS
+            or p_path.parent in PROTECTED_PRODUCTION_DIRS
+        ):
+            raise RuntimeError(
+                f"SAFETY VIOLATION: Cannot write class metadata to production target '{p}' when production write is not authorized!"
+            )
+        atomic_write_json(p_path, catalog, indent=2, ensure_ascii=False)
+        print(f"[Export] Saved class metadata catalog atomically to: {p}")
 
     return catalog
 
@@ -719,10 +750,12 @@ def export_model_to_onnx(
     frontend_json: str = DEFAULT_FRONTEND_JSON,
     backend_onnx: str = DEFAULT_BACKEND_ONNX,
     backend_json: str = DEFAULT_BACKEND_JSON,
-):
+    output_onnx_path: Optional[str] = None,
+    deploy: bool = True,
+) -> str:
     """
     Exports fine-tuned PyTorch checkpoint to ONNX format, validates it with onnx and onnxruntime,
-    and deploys it to both frontend and backend directories.
+    and optionally deploys it to both frontend and backend directories.
     """
     print(f"\n[Export ONNX] Loading PyTorch checkpoint: {checkpoint_path}")
     if not os.path.exists(checkpoint_path):
@@ -740,12 +773,27 @@ def export_model_to_onnx(
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    # Generate metadata catalog
-    build_disease_classes_json(classes, [frontend_json, backend_json])
+    # Safety assertion: if deployment is disabled, strictly prohibit writing to any production targets
+    if not deploy:
+        if output_onnx_path:
+            resolved_output = Path(output_onnx_path).resolve()
+            if (
+                resolved_output in PROTECTED_PRODUCTION_PATHS
+                or resolved_output.parent in PROTECTED_PRODUCTION_DIRS
+            ):
+                raise RuntimeError(
+                    f"SAFETY VIOLATION: Cannot write to production ONNX target '{output_onnx_path}' when deploy=False!"
+                )
 
-    # Export to ONNX
+    # Export to intermediate/candidate ONNX path FIRST
+    # NOTE: Metadata is NOT written here. Production metadata is only written after
+    # ONNX export, checker, and PyTorch-to-ONNX numerical parity validation all succeed.
     dummy_input = torch.randn(1, 3, 224, 224, requires_grad=False)
-    temp_onnx = os.path.join(_ml_dir, "artifacts", "model_export_temp.onnx")
+    temp_onnx = (
+        output_onnx_path
+        if (output_onnx_path and not deploy)
+        else os.path.join(_ml_dir, "artifacts", "model_export_temp.onnx")
+    )
     os.makedirs(os.path.dirname(temp_onnx), exist_ok=True)
 
     print(f"[Export ONNX] Converting PyTorch graph to ONNX format...")
@@ -761,51 +809,91 @@ def export_model_to_onnx(
         },
     }
     try:
-        torch.onnx.export(model, dummy_input, temp_onnx, dynamo=False, **export_kwargs)
-    except TypeError:
-        torch.onnx.export(model, dummy_input, temp_onnx, **export_kwargs)
+        torch.onnx.export(model, (dummy_input,), temp_onnx, dynamo=False, **export_kwargs)
+    except TypeError as exc:
+        if "dynamo" in str(exc) or "unexpected keyword argument" in str(exc):
+            torch.onnx.export(model, (dummy_input,), temp_onnx, **export_kwargs)
+        else:
+            raise
 
     # Validate ONNX model with checker
     print(f"[Export ONNX] Checking ONNX model integrity...")
-    onnx_model = onnx.load(temp_onnx)
-    onnx.checker.check_model(onnx_model)
+    validate_onnx_file(temp_onnx)
     print("  ✓ ONNX graph verification passed.")
 
     # Validate with onnxruntime
     print(f"[Export ONNX] Testing onnxruntime inference session...")
     ort_session = ort.InferenceSession(temp_onnx)
-    ort_inputs = {ort_session.get_inputs()[0].name: dummy_input.numpy()}
+    ort_input_name = ort_session.get_inputs()[0].name
+    ort_inputs = {ort_input_name: dummy_input.detach().cpu().numpy()}
     ort_outs = ort_session.run(None, ort_inputs)
 
     with torch.no_grad():
-        torch_out = model(dummy_input).numpy()
+        torch_out = model(dummy_input).detach().cpu().numpy()
 
-    np.testing.assert_allclose(torch_out, ort_outs[0], rtol=1e-03, atol=1e-04)
-    print("  ✓ PyTorch and ONNX Runtime predictions match within tolerance.")
+    ort_out = np.asarray(ort_outs[0], dtype=np.float32)
+    torch_out = np.asarray(torch_out, dtype=np.float32)
 
-    # Deploy to frontend and backend targets
-    for target in [frontend_onnx, backend_onnx]:
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        shutil.copyfile(temp_onnx, target)
-        size_mb = os.path.getsize(target) / (1024 * 1024)
-        print(f"[Export ONNX] Saved deployable ONNX model to: {target} ({size_mb:.2f} MB)")
+    np.testing.assert_allclose(actual=ort_out, desired=torch_out, rtol=1e-03, atol=1e-04)
+    max_diff = float(np.max(np.abs(torch_out - ort_out)))
+    print(f"  ✓ PyTorch and ONNX Runtime predictions match within tolerance (max diff: {max_diff:.6e}).")
 
-    # Clean up temp
-    if os.path.exists(temp_onnx):
-        os.remove(temp_onnx)
+    final_model_path = temp_onnx
 
-    print("\n" + "="*60)
-    print("           ONNX MODEL EXPORT & DEPLOYMENT COMPLETE")
-    print("="*60)
-    print(f" Frontend Model: {frontend_onnx}")
-    print(f" Frontend Meta:  {frontend_json}")
-    print(f" Backend Model:  {backend_onnx}")
-    print(f" Backend Meta:   {backend_json}")
-    print("="*60)
+    if deploy:
+        # ORDERING FIX: Generate metadata catalog for deployment targets ONLY AFTER
+        # ONNX export, ONNX structural validation, and numerical parity checks have all succeeded!
+        print(f"[Export ONNX] Writing class metadata catalogs atomically...")
+        build_disease_classes_json(classes, [frontend_json, backend_json], allow_production=True)
+
+        # Deploy ONNX model atomically to frontend and backend targets
+        for target in [frontend_onnx, backend_onnx]:
+            atomic_copy_file(temp_onnx, target, validate_fn=validate_onnx_file)
+            size_mb = os.path.getsize(target) / (1024 * 1024)
+            print(f"[Export ONNX] Saved deployable ONNX model atomically to: {target} ({size_mb:.2f} MB)")
+
+        if output_onnx_path and output_onnx_path != temp_onnx:
+            atomic_copy_file(temp_onnx, output_onnx_path, validate_fn=validate_onnx_file)
+
+        # Clean up temp intermediate ONNX file
+        if os.path.exists(temp_onnx) and temp_onnx != output_onnx_path:
+            os.remove(temp_onnx)
+
+        final_model_path = backend_onnx
+
+        print("\n" + "=" * 60)
+        print("           ONNX MODEL EXPORT & DEPLOYMENT COMPLETE")
+        print("=" * 60)
+        print(f" Frontend Model: {frontend_onnx}")
+        print(f" Frontend Meta:  {frontend_json}")
+        print(f" Backend Model:  {backend_onnx}")
+        print(f" Backend Meta:   {backend_json}")
+        print("=" * 60)
+    else:
+        # When deploy=False, outputs remain strictly in candidate or temporary locations
+        if output_onnx_path and output_onnx_path != temp_onnx:
+            atomic_copy_file(temp_onnx, output_onnx_path, validate_fn=validate_onnx_file)
+            if os.path.exists(temp_onnx):
+                os.remove(temp_onnx)
+            final_model_path = output_onnx_path
+        size_mb = os.path.getsize(final_model_path) / (1024 * 1024)
+        print(f"[Export ONNX] Non-deployed ONNX model saved to: {final_model_path} ({size_mb:.2f} MB)")
+
+    return final_model_path
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Export Trained PlantVillage Model to ONNX")
     parser.add_argument("--checkpoint", type=str, default=DEFAULT_CHECKPOINT_PATH)
+    parser.add_argument("--output-onnx", type=str, default=None, help="Custom output path for exported ONNX model")
+    parser.add_argument(
+        "--no-deploy",
+        action="store_true",
+        help="Skip deploying model and metadata to frontend/backend production directories",
+    )
     args = parser.parse_args()
-    export_model_to_onnx(checkpoint_path=args.checkpoint)
+    export_model_to_onnx(
+        checkpoint_path=args.checkpoint,
+        output_onnx_path=args.output_onnx,
+        deploy=not args.no_deploy,
+    )
