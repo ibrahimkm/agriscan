@@ -9,7 +9,7 @@ from collections import defaultdict
 import torch
 from torch.utils.data import Dataset, Subset
 from torchvision import transforms
-from PIL import Image, UnidentifiedImageError
+from PIL import Image
 
 # Add ml folder and project root to sys.path
 _ml_dir = str(Path(__file__).resolve().parent)
@@ -184,7 +184,7 @@ class PlantLeafDataset(Dataset):
         path, label = self.samples[index]
         try:
             image = Image.open(path).convert("RGB")
-        except (OSError, IOError, UnidentifiedImageError) as exc:
+        except OSError as exc:
             raise RuntimeError(f"Unable to read image: {path}") from exc
 
         if self.transform is not None:
@@ -234,7 +234,7 @@ class DatasetFromSamples(Dataset):
         path, label = self.samples[index]
         try:
             image = Image.open(path).convert("RGB")
-        except (OSError, IOError, UnidentifiedImageError) as exc:
+        except OSError as exc:
             raise RuntimeError(f"Unable to read image: {path}") from exc
 
         if self.transform is not None:
