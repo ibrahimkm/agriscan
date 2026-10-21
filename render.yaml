@@ -4,9 +4,11 @@ services:
     name: agriscan-backend
     runtime: node
     plan: free
+    autoDeploy: false
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -15,12 +17,13 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: MONGODB_URI
-        value: mongodb+srv://ibrahimkmaids2024_db_user:12345678@cluster0.jhbbiny.mongodb.net/agriscan?retryWrites=true&w=majority&appName=Cluster0
+        sync: false
 
   # AgriScan Frontend Static Site (type: web with runtime: static, no plan field)
   - type: web
     name: agriscan-frontend
     runtime: static
+    autoDeploy: false
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist

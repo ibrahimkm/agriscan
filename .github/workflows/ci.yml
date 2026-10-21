@@ -163,9 +163,9 @@ jobs:
         run: |
           python -m py_compile ml/*.py test_leaf*.py
 
-      - name: Run ML Pipeline Unit & Parity Tests
+      - name: Run ML Pipeline & Phase 3 Unit Tests (Test Discovery)
         run: |
-          python ml/test_ml_pipeline.py
+          python -m unittest discover -s ml -p "test_*.py"
 
       - name: Run Model & ONNX Verification
         run: |
